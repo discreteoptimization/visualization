@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Coloring: Graph Coloring Problem</title>
+    
+    <link rel="stylesheet" type="text/css" href="../viz.css" media="screen" />
+	
+    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
+    <script type="text/javascript" src="../constants.js"></script>
+    <script type="text/javascript" src="../common.js"></script>
+	<script type="text/javascript" src="coloring.js"></script>
+    
+    
+    <style type="text/css">
+        #edgeCanvas {position: absolute; top: 0; left: 0; padding: 0; z-index: -1;}
+        #viz {z-index: 10;}
+        .bar rect {
+            shape-rendering: crispEdges;
+        }
+        #degreeHistogram {width: 100%; height: 300px;}
+     
+    </style>
+	
+</head>
+<body>
+	<div id="controls">
+		<div id="benchmark_zone" class="drop_zone" style="float:left; width:45%">Step 1 - Drop benchmark file here</div>
+		<div id="solution_zone" class="drop_zone" style="float:right; width:45%">Step 2 - Drop solution file here</div>
+		<div style="clear:both;"><p id="feedback"></p></div>
+	</div>
+	
+    <div id="data">
+        <table id="problemTable" class="metadataTable">
+            <tbody>
+            </tbody>
+        </table>	
+        <table id="solutionTable" class="metadataTable">
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+	
+    <div id="viz">
+    </div>
+    
+    <canvas id="edgeCanvas"></canvas>
+    
+    <pre id="debug"></pre>
+
+    <script type="text/javascript" src="../viz.js"></script>
+    
+</body>
+</html>

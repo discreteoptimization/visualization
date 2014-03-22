@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>WAREHOUSE - Warehouse Location Problem</title>
+    
+    <link rel="stylesheet" type="text/css" href="../viz.css" media="screen" />
+    <link href="warehouse.css" rel="stylesheet" />
+
+    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
+    <script type="text/javascript" src="../constants.js"></script>
+    <script type="text/javascript" src="../common.js"></script>
+    <script type="text/javascript" src="warehouse.js"></script>
+
+</head>
+<body>
+
+    <div id="controls">
+	    <div id="benchmark_zone" class="drop_zone">Step 1 - Drop benchmark file here</div>
+	    <div id="solution_zone" class="drop_zone">Step 2 - Drop solution file here</div>
+		<div style="clear:both;"><p id="feedback"></p></div>
+	</div>
+    
+    <div id="data">
+        <table id="problemTable" class="metadataTable">
+            <tbody>
+            </tbody>
+        </table>	
+        <table id="solutionTable" class="metadataTable">
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    
+    <div id="viz"></div>
+    <pre id="debug"></pre>
+
+    <script type="text/javascript" src="../viz.js"></script>
+
+</body>
+</html>
