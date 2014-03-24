@@ -320,7 +320,7 @@ function vizBenchmark(){
         .style("opacity", 0);
     
     //force simulation
-    displayStatus("Setting up visuization<br\>please wait");
+    displayStatus("Setting up visualization...<br\>please wait");
     var force = d3.layout.force()
         .nodes(nodes)
         .links(edges)
