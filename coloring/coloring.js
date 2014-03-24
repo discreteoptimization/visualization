@@ -226,7 +226,7 @@ function parseSolutionText(data){
     
     nodes.forEach (function (node, i) {
         node.colorIndx = colorAssignments[i];
-        node.color = colors[Number(colorAssignments[i]) - 1];
+        node.color = colors[Number(colorAssignments[i])];
     });
     
     var svg = d3.select("#viz svg");
