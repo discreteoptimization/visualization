@@ -149,8 +149,10 @@ function plotDegrees(minDegree, maxDegree, degreeCts) {
         .ticks(count);
 
     var svg = d3.select("#degreeHistogram").append("svg")
-        .attr("width", width)
+        .attr("width", "100%")
         .attr("height", height)
+        .attr("viewBox", "0 0 " + width + " " +height)
+        .attr("preserveAspectRatio","none")
         .append("g");
 
     var bar = svg.selectAll(".bar")
@@ -357,8 +359,6 @@ function vizBenchmark(){
         var canvas = document.getElementById('edgeCanvas');
         canvas.height = metadata.graphHeight;
         canvas.width = metadata.graphWidth;
-        canvas.style.left = document.getElementById('viz').offsetLeft + "px";
-        canvas.style.top = (document.getElementById('viz').offsetTop + PAD_ADJUST) + "px";
         
         var ctx = canvas.getContext('2d');
         ctx.strokeStyle = "rgba(0,0,0," + metadata.lineScale(edgeCt) + ")";

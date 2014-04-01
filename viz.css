@@ -45,11 +45,14 @@ SOFTWARE.
 
 #viz {
     padding-top: 15px;
+    width: 73%;
+    float: left;
+    position: relative; 
+    padding: 0;
+    margin: 15px 1%;
 }
 
 .svgMain {
-    margin-left: auto; 
-    margin-right: auto;
     display: block;
 }
 
@@ -85,12 +88,7 @@ SOFTWARE.
     padding: inherit 1% 0 1%;
     margin: 0 1% 0 0;
 }
-#viz {
-    width: 73%;
-    float: left;    
-    padding: inherit 1% 0 1%;
-    margin: 0;
-}
+
 .metadataTable { 
     width: 100%;
     border-collapse: collapse;
