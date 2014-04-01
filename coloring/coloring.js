@@ -217,6 +217,7 @@ function parseSolutionText(data){
 	var colorAssignments = lines[1].split(REGEX_WHITESPACE);
     var colorsUsed =  roundNumber(lines[0].split(REGEX_WHITESPACE)[0], 4);
     var isOptimal = lines[0].split(REGEX_WHITESPACE)[1];
+    var feasibilityErrors = []
 	
     //grab a color for each used
     colors = makeColorGradient(colorsUsed);
@@ -229,25 +230,56 @@ function parseSolutionText(data){
 	var normalizedColors = []
 	var colorsAssigned = 0
 	colorAssignments.forEach(function(color) {
-	    if (typeof normalizedColors[color] === 'undefined') {
-	        normalizedColors[color] = colorsAssigned++;
+	    if (typeof normalizedColors[Number(color)] === 'undefined') {
+	        normalizedColors[Number(color)] = colorsAssigned++;
 	    }
 	});
 	
 	if (colorsAssigned != colorsUsed) {
-	    reportError("Solution claims to use " + colorsUsed + " colors, but uses "
-	                + colorsAssigned);
+	    feasibilityErrors.push("Solution claims to use " + colorsUsed + 
+	                            " colors, but uses " + colorsAssigned + ".");
 	}
 
 
     nodes.forEach (function (node, i) {
         node.colorIndx = colorAssignments[i];
-        node.color = colors[Number(colorAssignments[i])];
+        node.color = colors[normalizedColors[Number(colorAssignments[i])]];
     });
     
     var svg = d3.select("#viz svg");
     svg.select("#nodes").selectAll(".node")
         .attr("fill", function(d) {return d.color;})
+        
+    // Check for bad edges
+    var badEdgeCount = 0
+    var canvas = document.getElementById('badEdgeCanvas');
+    canvas.height = metadata.graphHeight;
+    canvas.width = metadata.graphWidth;
+    
+    var ctx = canvas.getContext('2d');
+    ctx.strokeStyle = "rgba(200,0,0," + 1 + ")";
+    ctx.lineWidth = 2;
+
+    edges.forEach ( function (edge) {
+        if (edge.source.colorIndx == edge.target.colorIndx) {
+            console.log(edge.source.colorIndx+ ", " + edge.target.colorIndx);
+            ctx.beginPath();
+            ctx.moveTo(metadata.xScale(edge.source.x), metadata.yScale(edge.source.y));
+            ctx.lineTo(metadata.xScale(edge.target.x), metadata.yScale(edge.target.y));
+            ctx.stroke();
+            ctx.closePath();
+            badEdgeCount++;
+        }
+    });
+    
+    if (badEdgeCount > 0) {
+        feasibilityErrors.push("Solution contains " + badEdgeCount + " bad edge" +
+                               (badEdgeCount > 1 ? "s." : "."));
+    }
+    
+    if (feasibilityErrors.length > 0) {
+        reportError(feasibilityErrors.join(" "));
+    }
     
     //solution details
     var metadataStr = "";
@@ -269,6 +301,10 @@ function cleanViz(){
     
     var canvas = document.getElementById('edgeCanvas');
     var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    canvas = document.getElementById('badEdgeCanvas');
+    ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
 }
