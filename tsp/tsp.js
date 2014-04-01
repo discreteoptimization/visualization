@@ -55,7 +55,7 @@ function parseInputText(data){
 	for(var i=1; i<(nbPoints+1); i++){
 	
 		var parts = lines[i].split(REGEX_WHITESPACE);
-		var point = {'x':parseFloat(parts[0]), 'y':parseFloat(parts[1]), "index" : i};
+		var point = {'x':parseFloat(parts[0]), 'y':parseFloat(parts[1]), "index" : i-1};
 
 		minX = Math.min(minX, point['x']);
 		maxX = Math.max(maxX, point['x']);
@@ -95,27 +95,27 @@ function parseSolutionText(data, size){
 	var lines = data.split(REGEX_NEWLINE);
 	var seq = lines[1].split(REGEX_WHITESPACE);
 	
-	if(seq.length != size){
-		reportError("solution size does not match benchmark size");
-		return null;
-	}
-	
 	for (var i=0; i < seq.length; i++){
 		seq[i] = parseInt(seq[i]);
 	}
 
   //solution details
     var metadataStr = "";
+    var obj = roundNumber(lines[0].split(REGEX_WHITESPACE)[0], 4)
 
     d3.selectAll("#solutionTable tbody *").remove();
 	
     metadataStr += "<tr><td colspan='2' class='metaSectionTitle'>Your Solution</td></tr>";
-    metadataStr += "<tr><td class='metaElement'>Objective Value</td><td class='metaValue'>" + roundNumber(lines[0].split(REGEX_WHITESPACE)[0], 4) + "</td></tr>";
+    metadataStr += "<tr><td class='metaElement'>Objective Value</td><td class='metaValue'>" + obj + "</td></tr>";
     metadataStr += "<tr><td class='metaElement'>Optimal?</td><td class='metaValue'>" + lines[0].split(REGEX_WHITESPACE)[1] + "</td></tr>";
 	
 	d3.select("#solutionTable tbody").html(metadataStr);	
 	
-	return seq;
+	if (checkValidity(seq, obj)) {
+    	return seq;
+    } else {
+        return null;
+    }
 }
 
 function cleanViz(){
@@ -266,9 +266,9 @@ function vizBenchmark(benchmark){
 
 function vizSolution(solution){
 
-	var edges = []
+	var edges = [];
 	for (var i=0; i < solution.length-1; i++){
-		var edge = {'from':benchmark[solution[i]], 'to':benchmark[solution[i+1]]}
+		var edge = {'from':benchmark[solution[i]], 'to':benchmark[solution[i+1]]};
 		//console.log(edge)
 		edges = edges.concat(edge);
 	}
@@ -293,6 +293,11 @@ function vizSolution(solution){
 		.attr("stroke-opacity", "0.5")
 		.attr("stroke-width", benchmark['circle_size'] / 2);
 		
+	svg.select("#nodes").selectAll("circle")
+        .attr("fill", function(d) {return d.error ? ERROR_NODE_COLOR : NODE_COLOR;})
+		.attr("r", function(d) {return d.error ? benchmark['circle_size'] + 2 : 
+		                                         benchmark['circle_size'] ;});
+		
 }
 
 function loadBenchmark(text){
@@ -311,8 +316,77 @@ function loadSolution(text){
 		reportError("cannot load a solution before a benchmark")
 		return
 	}
-	solution = parseSolutionText(text, benchmark['size'])
+	solution = parseSolutionText(text)
 	if(solution != null){
 		vizSolution(solution)
 	}
 }
+
+function dist(a,b) {
+    return Math.sqrt(Math.pow((a.x-b.x),2) + Math.pow((a.y-b.y),2));
+}
+
+function checkValidity(solution, obj) {
+    // check validity and report errors.
+    // Return value indicates whether rendering should be attempted. 
+
+    var errors = [];
+	if(solution.length != benchmark.size){
+		errors.push("Expected " + benchmark.size + " nodes in solution but found " 
+		            + solution.length + ".");
+	}
+	var visited = [];
+	for (var i = 0; i < benchmark.length; i++) { 
+	    visited[i] = 0 
+	}
+	for (var i = 0; i < solution.length; i++) {
+        if (solution[i] < 0 || solution[i] >= benchmark.length) {
+            reportError("Solution includes bad node number: " + solution[i]);
+            return false;
+        }
+        visited[solution[i]] += 1 
+    }
+    
+    var length = roundNumber(solution.reduce(function(x, n, i, sol) {
+        return x + dist(benchmark[sol[i]], benchmark[sol[(i+1) % sol.length]]);
+        }, 0), 4);
+    if (length != obj) {
+        errors.push("Solution reports length as " + obj + ", but actual length is " 
+                    + length + ".");
+    }
+            
+    revisited = []
+    unvisited = []
+    for (var i = 0; i < benchmark.length; i++) {
+        if (visited[i] == 0) {
+            unvisited.push(i);
+            benchmark[i].error = true;
+        } else if (visited[i] > 1) {
+            revisited.push(i);
+            benchmark[i].error = true;
+        }
+    }
+    
+    if (unvisited.length == 1) {
+        errors.push("Node " + unvisited[0] + " not visited.");
+    } else if (unvisited.length > 1 && unvisited.length < 4) {
+        errors.push("Nodes " + unvisited.slice(0,unvisited.length-1).join(", ") 
+                    + " and " + unvisited[unvisited.length-1] + " not visited.");
+    } else if (unvisited.length >= 4) {
+        errors.push("Nodes " + unvisited.slice(0,4).join(", ") 
+                    + " and others not visited.");
+    }
+    
+    if (revisited.length == 1) {
+        errors.push("Node " + revisited[0] + " visited more than once.");
+    } else if (revisited.length > 1 && revisited.length < 4) {
+        errors.push("Nodes " + revisited.slice(0,revisited.length-1).join(", ") 
+                    + " and " + revisited[revisited.length-1] + " visited more than once.");
+    } else if (revisited.length >= 4) {
+        errors.push("Nodes " + revisited.slice(0,4).join(", ") 
+                    + " and others visited more than once.");
+    }
+    
+    reportError(errors.join(" "));
+    return true;
+}    
