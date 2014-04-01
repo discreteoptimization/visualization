@@ -225,7 +225,21 @@ function parseSolutionText(data){
 		reportError("solution size does not match benchmark size");
 		return null;
 	}
-    
+	
+	var normalizedColors = []
+	var colorsAssigned = 0
+	colorAssignments.forEach(function(color) {
+	    if (typeof normalizedColors[color] === 'undefined') {
+	        normalizedColors[color] = colorsAssigned++;
+	    }
+	});
+	
+	if (colorsAssigned != colorsUsed) {
+	    reportError("Solution claims to use " + colorsUsed + " colors, but uses "
+	                + colorsAssigned);
+	}
+
+
     nodes.forEach (function (node, i) {
         node.colorIndx = colorAssignments[i];
         node.color = colors[Number(colorAssignments[i])];
