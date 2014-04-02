@@ -214,71 +214,54 @@ function parseSolutionText(data){
 	data = data.trim();
     
 	var lines = data.split(REGEX_NEWLINE);
-	var colorAssignments = lines[1].split(REGEX_WHITESPACE);
+	var colorAssignments = lines[1].split(REGEX_WHITESPACE).map(Number);
     var colorsUsed =  roundNumber(lines[0].split(REGEX_WHITESPACE)[0], 4);
     var isOptimal = lines[0].split(REGEX_WHITESPACE)[1];
-    var feasibilityErrors = []
+    var errors = []
 	
     //grab a color for each used
     colors = makeColorGradient(colorsUsed);
     
 	if(colorAssignments.length != nodeCt){
-		reportError("solution size does not match benchmark size");
+		reportError("Solution size does not match benchmark size");
 		return null;
 	}
 	
-	var normalizedColors = []
-	var colorsAssigned = 0
-	colorAssignments.forEach(function(color) {
-	    if (typeof normalizedColors[Number(color)] === 'undefined') {
-	        normalizedColors[Number(color)] = colorsAssigned++;
+	var sortedColors = colorAssignments.slice().sort();
+	var normalizedColors = [];
+	var colorsAssigned = 0;
+	sortedColors.forEach(function(color) {
+	    if (typeof normalizedColors[color] === 'undefined') {
+	        normalizedColors[color] = colorsAssigned++;
 	    }
 	});
 	
 	if (colorsAssigned != colorsUsed) {
-	    feasibilityErrors.push("Solution claims to use " + colorsUsed + 
-	                            " colors, but uses " + colorsAssigned + ".");
+	    errors.push("Solution claims to use " + colorsUsed + 
+	                " colors, but uses " + colorsAssigned + ".");
 	}
-
 
     nodes.forEach (function (node, i) {
         node.colorIndx = colorAssignments[i];
-        node.color = colors[normalizedColors[Number(colorAssignments[i])]];
+        node.color = colors[normalizedColors[colorAssignments[i]]];
     });
-    
-    var svg = d3.select("#viz svg");
-    svg.select("#nodes").selectAll(".node")
-        .attr("fill", function(d) {return d.color;})
         
     // Check for bad edges
-    var badEdgeCount = 0
-    var canvas = document.getElementById('badEdgeCanvas');
-    canvas.height = metadata.graphHeight;
-    canvas.width = metadata.graphWidth;
-    
-    var ctx = canvas.getContext('2d');
-    ctx.strokeStyle = "rgba(200,0,0," + 1 + ")";
-    ctx.lineWidth = 2;
-
-    edges.forEach ( function (edge) {
+    var badEdgeStrings = [];
+    var badEdges = [];
+    edges.forEach( function(edge) {
         if (edge.source.colorIndx == edge.target.colorIndx) {
-            console.log(edge.source.colorIndx+ ", " + edge.target.colorIndx);
-            ctx.beginPath();
-            ctx.moveTo(metadata.xScale(edge.source.x), metadata.yScale(edge.source.y));
-            ctx.lineTo(metadata.xScale(edge.target.x), metadata.yScale(edge.target.y));
-            ctx.stroke();
-            ctx.closePath();
-            badEdgeCount++;
+            badEdgeStrings.push('('+edge.source.index+', '+edge.target.index + ')');
+            badEdges.push(edge);
         }
     });
     
-    if (badEdgeCount > 0) {
-        feasibilityErrors.push("Solution contains " + badEdgeCount + " bad edge" +
-                               (badEdgeCount > 1 ? "s." : "."));
+    if (badEdges.length > 0) {
+        errors.push(errorMessage(badEdgeStrings, "", "Bad edge"));
     }
     
-    if (feasibilityErrors.length > 0) {
-        reportError(feasibilityErrors.join(" "));
+    if (errors.length > 0) {
+        reportError(errors.join(" "));
     }
     
     //solution details
@@ -292,6 +275,30 @@ function parseSolutionText(data){
 	
 	d3.select("#solutionTable tbody").html(metadataStr);	
 
+    vizSolution(badEdges);
+}
+
+function vizSolution(badEdges) {
+    var svg = d3.select("#viz svg");
+    svg.select("#nodes").selectAll(".node")
+        .attr("fill", function(d) {return d.color;})
+        
+    var canvas = document.getElementById('badEdgeCanvas');
+    canvas.height = metadata.graphHeight;
+    canvas.width = metadata.graphWidth;
+    
+    var ctx = canvas.getContext('2d');
+    ctx.strokeStyle = "rgba(200,0,0," + 1 + ")";
+    ctx.lineWidth = 2;
+
+    badEdges.forEach ( function (edge) {
+        console.log(edge.source.colorIndx+ ", " + edge.target.colorIndx);
+        ctx.beginPath();
+        ctx.moveTo(metadata.xScale(edge.source.x), metadata.yScale(edge.source.y));
+        ctx.lineTo(metadata.xScale(edge.target.x), metadata.yScale(edge.target.y));
+        ctx.stroke();
+        ctx.closePath();
+    });
 }
 
 function cleanViz(){

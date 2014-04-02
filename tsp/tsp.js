@@ -322,10 +322,6 @@ function loadSolution(text){
 	}
 }
 
-function dist(a,b) {
-    return Math.sqrt(Math.pow((a.x-b.x),2) + Math.pow((a.y-b.y),2));
-}
-
 function checkValidity(solution, obj) {
     // check validity and report errors.
     // Return value indicates whether rendering should be attempted. 
@@ -367,24 +363,12 @@ function checkValidity(solution, obj) {
         }
     }
     
-    if (unvisited.length == 1) {
-        errors.push("Node " + unvisited[0] + " not visited.");
-    } else if (unvisited.length > 1 && unvisited.length < 4) {
-        errors.push("Nodes " + unvisited.slice(0,unvisited.length-1).join(", ") 
-                    + " and " + unvisited[unvisited.length-1] + " not visited.");
-    } else if (unvisited.length >= 4) {
-        errors.push("Nodes " + unvisited.slice(0,4).join(", ") 
-                    + " and others not visited.");
+    if (unvisited.length > 0) {
+        errors.push(errorMessage(unvisited, "not visited", "Node"));
     }
     
-    if (revisited.length == 1) {
-        errors.push("Node " + revisited[0] + " visited more than once.");
-    } else if (revisited.length > 1 && revisited.length < 4) {
-        errors.push("Nodes " + revisited.slice(0,revisited.length-1).join(", ") 
-                    + " and " + revisited[revisited.length-1] + " visited more than once.");
-    } else if (revisited.length >= 4) {
-        errors.push("Nodes " + revisited.slice(0,4).join(", ") 
-                    + " and others visited more than once.");
+    if (revisited.length > 0) {
+        errors.push(errorMessage(revisited, "visited more than once", "Node"));
     }
     
     reportError(errors.join(" "));
