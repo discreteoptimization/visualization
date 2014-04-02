@@ -25,12 +25,12 @@ SOFTWARE.
 "use strict";
 
 var metadata = {
-    "isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "warehouseCount": 0, 
+    "isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "facilityCount": 0, 
 	"x_min": 0, "x_max": 0, "x_span": 0, "y_min": 0, "y_max": 0, "y_span": 0,
     "circle_size" : 0, "graphHeight": 0, "graphWidth": 0
 }
 var customers = [];
-var warehouses = [];
+var facilities = [];
 var colors = [];
 var assignments = [];
 
@@ -38,13 +38,13 @@ function parseInputText(data) {
 
     //clear data
     metadata = metadata = {
-		"isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "warehouseCount": 0, 
+		"isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "facilityCount": 0, 
 		"x_min": 0, "x_max": 0, "x_span": 0, "y_min": 0, "y_max": 0, "y_span": 0,
 		"circle_size" : 0, "graphHeight": 0, "graphWidth": 0
 	};
 	
 	customers = [];
-	warehouses = [];
+	facilities = [];
 
     data = data.trim();
         
@@ -52,10 +52,10 @@ function parseInputText(data) {
     var params = lines[0].split(REGEX_WHITESPACE);
 
     metadata['customerCount'] = parseInt(params[1]);
-    metadata['warehouseCount'] = parseInt(params[0]);
+    metadata['facilityCount'] = parseInt(params[0]);
 	
-	//unique colors for each warehouse
-	colors = makeColorGradient(metadata.warehouseCount);
+	//unique colors for each facility
+	colors = makeColorGradient(metadata.facilityCount);
         
     //problem boundaries  
     var minX = Infinity;
@@ -66,7 +66,7 @@ function parseInputText(data) {
     var parts;
     var point;
 
-    for (var i = 1; i < metadata.warehouseCount + 1; i++) {
+    for (var i = 1; i < metadata.facilityCount + 1; i++) {
 
         parts = lines[i].split(REGEX_WHITESPACE);
 
@@ -77,22 +77,22 @@ function parseInputText(data) {
         minY = Math.min(minY, point['y']);
         maxY = Math.max(maxY, point['y']);
 
-        warehouses[i - 1] = point;
+        facilities[i - 1] = point;
 
     }
 	
-    for (var i = (metadata.warehouseCount + 1); i < (metadata.warehouseCount + 1 + metadata.customerCount); i++) {
+    for (var i = (metadata.facilityCount + 1); i < (metadata.facilityCount + 1 + metadata.customerCount); i++) {
 
         parts = lines[i].split(REGEX_WHITESPACE);
 
-        point = { 'index': i-metadata.warehouseCount, 'demand': parseInt(parts[0]), 'x': parseFloat(parts[1]), 'y': parseFloat(parts[2]) };
+        point = { 'index': i-metadata.facilityCount, 'demand': parseInt(parts[0]), 'x': parseFloat(parts[1]), 'y': parseFloat(parts[2]) };
 
         minX = Math.min(minX, point['x']);
         maxX = Math.max(maxX, point['x']);
         minY = Math.min(minY, point['y']);
         maxY = Math.max(maxY, point['y']);
 
-        customers[i - metadata.warehouseCount - 1] = point;
+        customers[i - metadata.facilityCount - 1] = point;
 
     }
 
@@ -116,7 +116,7 @@ function parseSolutionText(data, size) {
     metadata.objectiveVal = parseFloat(params[0]);
     metadata.isOptimal = parseInt(params[1]);
 
-    //warehouse assignments
+    //facility assignments
     assignments = lines[1].split(REGEX_WHITESPACE);
 
 }
@@ -172,7 +172,7 @@ function vizBenchmark() {
 		
 	//parent group for nodes and links
 	svg.append("g").attr("id", "connections");
-	svg.append("g").attr("id", "warehouses");
+	svg.append("g").attr("id", "facilities");
 	svg.append("g").attr("id", "customers");
  
     var xAxisLabel = "X Coordinate"
@@ -212,9 +212,9 @@ function vizBenchmark() {
             .attr("transform", "rotate(-90)")
             .text(yAxisLabel);
       
-	//warehouses
-    svg.select("#warehouses").selectAll("rect")
-        .data(warehouses)
+	//facilities
+    svg.select("#facilities").selectAll("rect")
+        .data(facilities)
         .enter()
         .append("rect")
         .attr("id", function (d) { return "whPnt" + d.index; })
@@ -249,7 +249,7 @@ function vizBenchmark() {
                 .style("opacity", 0);
         });
 		
-	//warehouses
+	//facilities
     svg.select("#customers").selectAll("circle")
         .data(customers)
         .enter()
@@ -288,7 +288,7 @@ function vizBenchmark() {
 	d3.selectAll("#solutionTable tbody *").remove();
 
     metadataStr += "<tr><td colspan='2' class='metaSectionTitle'>Problem</td></tr>";
-    metadataStr += "<tr><td class='metaElement'><img src='images/square.png'> Warehouses</td><td class='metaValue'>" + metadata.warehouseCount + "</td></tr>";
+    metadataStr += "<tr><td class='metaElement'><img src='images/square.png'> Facilities</td><td class='metaValue'>" + metadata.facilityCount + "</td></tr>";
     metadataStr += "<tr><td class='metaElement'><img src='images/circle.png'> Customers</td><td class='metaValue'>" + metadata.customerCount + "</td></tr>";
 
     d3.select("#problemTable tbody").html(metadataStr);
@@ -326,7 +326,7 @@ function vizSolution() {
 
     var svg = d3.select("#viz svg");
    
-    //assign colors to customers to match assigned warehouse
+    //assign colors to customers to match assigned facility
 	svg.select("#customers").selectAll("circle")
 		.attr("fill", function(d) {
 			var color = colors[assignments[d.index - 1]];
@@ -351,16 +351,16 @@ function vizSolution() {
 				return yScale(cust.y);
 			})
 			.attr("x2", function(d) {
-				var wh = warehouses[assignments[i]];
+				var wh = facilities[assignments[i]];
 				return xScale(wh.x);
 			})
 			.attr("y2", function(d) {
-				var wh = warehouses[assignments[i]];
+				var wh = facilities[assignments[i]];
 				return yScale(wh.y);
 			})
 			.attr("stroke-width", metadata.circle_size)
 			.attr("stroke", function(d) {
-				var wh = warehouses[assignments[i]];
+				var wh = facilities[assignments[i]];
 				return colors[wh.index-1];
 			})
 			.style("opacity", .5);;
