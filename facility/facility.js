@@ -32,7 +32,6 @@ var metadata = {
 var customers = [];
 var facilities = [];
 var colors = [];
-var assignments = [];
 
 function parseInputText(data) {
 
@@ -53,6 +52,12 @@ function parseInputText(data) {
 
     metadata['customerCount'] = parseInt(params[1]);
     metadata['facilityCount'] = parseInt(params[0]);
+    
+    var expectedLines = metadata.customerCount + metadata.facilityCount + 1;
+    if (lines.length != expectedLines) {
+        reportError("Input format incorrect: should have " + expectedLines + " lines.");
+        return false;
+    }
 	
 	//unique colors for each facility
 	colors = makeColorGradient(metadata.facilityCount);
@@ -70,7 +75,9 @@ function parseInputText(data) {
 
         parts = lines[i].split(REGEX_WHITESPACE);
 
-        point = { 'index': i, 'capacity': parseInt(parts[0]), 'cost': parseInt(parts[1]), 'x': parseFloat(parts[2]), 'y': parseFloat(parts[3]) };
+        point = { 'index': i-1, 'cost': parseFloat(parts[0]), 'capacity': parseFloat(parts[1]), 
+                  'x': parseFloat(parts[2]), 'y': parseFloat(parts[3]),
+                  'capacityUsed' : 0 };
 
         minX = Math.min(minX, point['x']);
         maxX = Math.max(maxX, point['x']);
@@ -85,7 +92,9 @@ function parseInputText(data) {
 
         parts = lines[i].split(REGEX_WHITESPACE);
 
-        point = { 'index': i-metadata.facilityCount, 'demand': parseInt(parts[0]), 'x': parseFloat(parts[1]), 'y': parseFloat(parts[2]) };
+        point = { 'index': i-metadata.facilityCount-1, 'demand': parseInt(parts[0]), 
+                  'x': parseFloat(parts[1]), 'y': parseFloat(parts[2]),
+                  'facility': null };
 
         minX = Math.min(minX, point['x']);
         maxX = Math.max(maxX, point['x']);
@@ -102,7 +111,8 @@ function parseInputText(data) {
     metadata['y_min'] = minY;
     metadata['y_max'] = maxY;
     metadata['y_span'] = maxY - minY;
-
+    
+    return true;
 }
     
 function parseSolutionText(data, size) {
@@ -117,8 +127,23 @@ function parseSolutionText(data, size) {
     metadata.isOptimal = parseInt(params[1]);
 
     //facility assignments
-    assignments = lines[1].split(REGEX_WHITESPACE);
-
+    var assignments = lines[1].split(REGEX_WHITESPACE);
+    
+    for (var i = 0; i < facilities.length; i++) {
+        facilities[i].capacityUsed = 0;
+    }
+    
+    for (var i = 0; i < customers.length; i++) {
+        if (i >= assignments.length || assignments[i] < 0 || 
+                                       assignments[i] >= facilities.length) {
+            customers[i].facility = null;
+        } else {
+    	    facilities[assignments[i]].capacityUsed += customers[i].demand;
+	        customers[i].facility = facilities[Number(assignments[i])];
+	    }
+    }
+    
+    return checkValidity();
 }
     
 function cleanViz(){
@@ -217,7 +242,7 @@ function vizBenchmark() {
         .data(facilities)
         .enter()
         .append("rect")
-        .attr("id", function (d) { return "whPnt" + d.index; })
+        .attr("id", function (d) { return "facPnt" + d.index; })
         .attr("x", function(d) {
 			return xScale(d['x']) - (metadata.circle_size * 3);
 		})
@@ -226,7 +251,7 @@ function vizBenchmark() {
 		})
         .attr("width", metadata.circle_size * 6)
         .attr("height", metadata.circle_size * 6)
-		.attr("fill", function(d) {return colors[d.index - 1];})
+		.attr("fill", function(d) {return colors[d.index];})
 		.style("opacity", 1)
         .on("mouseover", function (d) {
 		
@@ -241,7 +266,9 @@ function vizBenchmark() {
                 .style("opacity", .85)
 				.style("left", (left) + "px")
                 .style("top", (d3.event.pageY - 25) + "px");
-            div.html("#" + d.index + ": Capacity " + d.capacity + " / Cost " +  d.cost + " (X:" + d.x + ", Y:" + d.y + ")");
+            div.html("F" + d.index + ": Cap. used: " + d.capacityUsed + "/" 
+                      + d.capacity + ". Cost: " +  d.cost 
+                      + " (X:" + roundNumber(d.x,2) + ", Y:" + roundNumber(d.y,2) + ")");
         })
         .on("mouseout", function (d) {
             div.transition()
@@ -273,7 +300,9 @@ function vizBenchmark() {
                 .style("opacity", .85)
 				.style("left", (left) + "px")
                 .style("top", (d3.event.pageY - 25) + "px");
-            div.html("#" + d.index + ": Demand " + d.demand + " (X:" + d.x + ", Y:" + d.y + ") WH: #" + (Number(assignments[d.index - 1]) + 1));
+            div.html("C" + d.index + ": Demand " + d.demand + " (X:" 
+                     + roundNumber(d.x,2) + ", Y:" + roundNumber(d.y,2) + ") Facility: " 
+                     + (d.facility === null ? "None": d.facility.index));
         })
         .on("mouseout", function (d) {
             div.transition()
@@ -329,8 +358,11 @@ function vizSolution() {
     //assign colors to customers to match assigned facility
 	svg.select("#customers").selectAll("circle")
 		.attr("fill", function(d) {
-			var color = colors[assignments[d.index - 1]];
-			return color;
+		    if (d.facility == null) {
+		        return NODE_COLOR;
+			} else {
+			    return colors[d.facility.index];
+	        }
 		}
 	);
 
@@ -338,6 +370,9 @@ function vizSolution() {
 	svg.select("#connections").selectAll("line").data([]).exit().remove();
 	
 	for (var i = 0; i < customers.length; i++) {
+	    if (customers[i].facility == null) {
+	        continue;
+	    }
 	
 		svg.select("#connections")
 			.append("line")
@@ -351,17 +386,17 @@ function vizSolution() {
 				return yScale(cust.y);
 			})
 			.attr("x2", function(d) {
-				var wh = facilities[assignments[i]];
-				return xScale(wh.x);
+				var fac = customers[i].facility;
+				return xScale(fac.x);
 			})
 			.attr("y2", function(d) {
-				var wh = facilities[assignments[i]];
-				return yScale(wh.y);
+				var fac = customers[i].facility;
+				return yScale(fac.y);
 			})
 			.attr("stroke-width", metadata.circle_size)
 			.attr("stroke", function(d) {
-				var wh = facilities[assignments[i]];
-				return colors[wh.index-1];
+				var fac = customers[i].facility;
+				return colors[fac.index];
 			})
 			.style("opacity", .5);;
 	
@@ -370,12 +405,53 @@ function vizSolution() {
 }
     
 function loadBenchmark(text){
-    parseInputText(text);
+    if (parseInputText(text));
     vizBenchmark();
 }
     
 function loadSolution(text){
-    parseSolutionText(text);
-    vizSolution();
+    var valid = parseSolutionText(text)
+    if (valid) {
+        vizSolution();
+    }
+}
+
+function checkValidity() {
+	var errors = [];
+	var cost = 0;
+	var unassigned = []
+	customers.forEach(function(cust) {
+	    if (cust.facility === null) {
+	        unassigned.push(cust.index)
+	    } else {
+    	    cost += dist(cust, cust.facility);
+    	}
+	});
+	if (unassigned.length > 0) {
+	     errors.push(errorMessage(unassigned, "not assigned to a valid facility",
+	                              "Customer"));
+	}
+	
+	var overCapacity = [];
+	facilities.forEach(function(fac) {
+	    if (fac.capacityUsed > fac.capacity) {
+	        overCapacity.push(fac.index) ;  
+	    }
+	    if (fac.capacityUsed > 0) {
+	        cost += fac.cost;
+	    }
+	});
+	if (overCapacity.length > 0) {
+	    errors.push(errorMessage(overCapacity, "over capacity", 
+	                             "Facility", "Facilities"));
+	}
+	if (Math.abs(cost - metadata.objectiveVal) > .0001) {
+	    errors.push("Solution reports cost as " + roundNumber(metadata.objectiveVal,4) 
+	                + ", but actual cost is " + roundNumber(cost,4) 
+	                + ".");
+	}
+    
+    reportError(errors.join(" "));
+    return true;
 }
     

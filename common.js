@@ -58,3 +58,22 @@ function byte2Hex(n) {
     var nybHexString = "0123456789ABCDEF";
     return String(nybHexString.substr((n >> 4) & 0x0F,1)) + nybHexString.substr(n & 0x0F,1);
 }
+
+function dist(a,b) {
+    return Math.sqrt(Math.pow((a.x-b.x),2) + Math.pow((a.y-b.y),2));
+}
+
+function errorMessage(itemList, error, itemName, pluralItemName) {
+    if (pluralItemName === undefined) {
+        pluralItemName = itemName + "s";
+    }
+    if (itemList.length == 1) {
+        return itemName + " " + itemList[0] + " " + error + ".";
+    } else if (itemList.length > 1 && itemList.length < 4) {
+        return pluralItemName + " " + itemList.slice(0,itemList.length-1).join(", ") 
+                    + " and " + itemList[itemList.length-1] + " " + error + ".";
+    } else if (itemList.length >= 4) {
+        return pluralItemName + " " + itemList.slice(0,4).join(", ") 
+                    + " and others " + error + ".";
+    }
+}
