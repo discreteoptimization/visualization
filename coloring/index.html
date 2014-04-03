@@ -13,7 +13,8 @@
     
     
     <style type="text/css">
-        #edgeCanvas {position: absolute; top: 0; left: 0; padding: 0; z-index: -1;}
+        #edgeCanvas {position: absolute; top: 0; left: 0; padding: 0; z-index: -2;}
+        #badEdgeCanvas {position: absolute; top: 0; left: 0; padding: 0; z-index: -1;}
         #viz {z-index: 10;}
         .bar rect {
             shape-rendering: crispEdges;
@@ -43,6 +44,7 @@
 	
     <div id="viz">
         <canvas id="edgeCanvas"></canvas>
+        <canvas id="badEdgeCanvas"></canvas>
     </div>
     
     <pre id="debug"></pre>

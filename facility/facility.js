@@ -25,26 +25,25 @@ SOFTWARE.
 "use strict";
 
 var metadata = {
-    "isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "warehouseCount": 0, 
+    "isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "facilityCount": 0, 
 	"x_min": 0, "x_max": 0, "x_span": 0, "y_min": 0, "y_max": 0, "y_span": 0,
     "circle_size" : 0, "graphHeight": 0, "graphWidth": 0
 }
 var customers = [];
-var warehouses = [];
+var facilities = [];
 var colors = [];
-var assignments = [];
 
 function parseInputText(data) {
 
     //clear data
     metadata = metadata = {
-		"isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "warehouseCount": 0, 
+		"isOptimal": 0, "objectiveVal": 0, "customerCount": 0, "facilityCount": 0, 
 		"x_min": 0, "x_max": 0, "x_span": 0, "y_min": 0, "y_max": 0, "y_span": 0,
 		"circle_size" : 0, "graphHeight": 0, "graphWidth": 0
 	};
 	
 	customers = [];
-	warehouses = [];
+	facilities = [];
 
     data = data.trim();
         
@@ -52,10 +51,16 @@ function parseInputText(data) {
     var params = lines[0].split(REGEX_WHITESPACE);
 
     metadata['customerCount'] = parseInt(params[1]);
-    metadata['warehouseCount'] = parseInt(params[0]);
+    metadata['facilityCount'] = parseInt(params[0]);
+    
+    var expectedLines = metadata.customerCount + metadata.facilityCount + 1;
+    if (lines.length != expectedLines) {
+        reportError("Input format incorrect: should have " + expectedLines + " lines.");
+        return false;
+    }
 	
-	//unique colors for each warehouse
-	colors = makeColorGradient(metadata.warehouseCount);
+	//unique colors for each facility
+	colors = makeColorGradient(metadata.facilityCount);
         
     //problem boundaries  
     var minX = Infinity;
@@ -66,33 +71,37 @@ function parseInputText(data) {
     var parts;
     var point;
 
-    for (var i = 1; i < metadata.warehouseCount + 1; i++) {
+    for (var i = 1; i < metadata.facilityCount + 1; i++) {
 
         parts = lines[i].split(REGEX_WHITESPACE);
 
-        point = { 'index': i, 'capacity': parseInt(parts[0]), 'cost': parseInt(parts[1]), 'x': parseFloat(parts[2]), 'y': parseFloat(parts[3]) };
+        point = { 'index': i-1, 'cost': parseFloat(parts[0]), 'capacity': parseFloat(parts[1]), 
+                  'x': parseFloat(parts[2]), 'y': parseFloat(parts[3]),
+                  'capacityUsed' : 0 };
 
         minX = Math.min(minX, point['x']);
         maxX = Math.max(maxX, point['x']);
         minY = Math.min(minY, point['y']);
         maxY = Math.max(maxY, point['y']);
 
-        warehouses[i - 1] = point;
+        facilities[i - 1] = point;
 
     }
 	
-    for (var i = (metadata.warehouseCount + 1); i < (metadata.warehouseCount + 1 + metadata.customerCount); i++) {
+    for (var i = (metadata.facilityCount + 1); i < (metadata.facilityCount + 1 + metadata.customerCount); i++) {
 
         parts = lines[i].split(REGEX_WHITESPACE);
 
-        point = { 'index': i-metadata.warehouseCount, 'demand': parseInt(parts[0]), 'x': parseFloat(parts[1]), 'y': parseFloat(parts[2]) };
+        point = { 'index': i-metadata.facilityCount-1, 'demand': parseInt(parts[0]), 
+                  'x': parseFloat(parts[1]), 'y': parseFloat(parts[2]),
+                  'facility': null };
 
         minX = Math.min(minX, point['x']);
         maxX = Math.max(maxX, point['x']);
         minY = Math.min(minY, point['y']);
         maxY = Math.max(maxY, point['y']);
 
-        customers[i - metadata.warehouseCount - 1] = point;
+        customers[i - metadata.facilityCount - 1] = point;
 
     }
 
@@ -102,7 +111,8 @@ function parseInputText(data) {
     metadata['y_min'] = minY;
     metadata['y_max'] = maxY;
     metadata['y_span'] = maxY - minY;
-
+    
+    return true;
 }
     
 function parseSolutionText(data, size) {
@@ -116,9 +126,24 @@ function parseSolutionText(data, size) {
     metadata.objectiveVal = parseFloat(params[0]);
     metadata.isOptimal = parseInt(params[1]);
 
-    //warehouse assignments
-    assignments = lines[1].split(REGEX_WHITESPACE);
-
+    //facility assignments
+    var assignments = lines[1].split(REGEX_WHITESPACE);
+    
+    for (var i = 0; i < facilities.length; i++) {
+        facilities[i].capacityUsed = 0;
+    }
+    
+    for (var i = 0; i < customers.length; i++) {
+        if (i >= assignments.length || assignments[i] < 0 || 
+                                       assignments[i] >= facilities.length) {
+            customers[i].facility = null;
+        } else {
+    	    facilities[assignments[i]].capacityUsed += customers[i].demand;
+	        customers[i].facility = facilities[Number(assignments[i])];
+	    }
+    }
+    
+    return checkValidity();
 }
     
 function cleanViz(){
@@ -172,7 +197,7 @@ function vizBenchmark() {
 		
 	//parent group for nodes and links
 	svg.append("g").attr("id", "connections");
-	svg.append("g").attr("id", "warehouses");
+	svg.append("g").attr("id", "facilities");
 	svg.append("g").attr("id", "customers");
  
     var xAxisLabel = "X Coordinate"
@@ -212,12 +237,12 @@ function vizBenchmark() {
             .attr("transform", "rotate(-90)")
             .text(yAxisLabel);
       
-	//warehouses
-    svg.select("#warehouses").selectAll("rect")
-        .data(warehouses)
+	//facilities
+    svg.select("#facilities").selectAll("rect")
+        .data(facilities)
         .enter()
         .append("rect")
-        .attr("id", function (d) { return "whPnt" + d.index; })
+        .attr("id", function (d) { return "facPnt" + d.index; })
         .attr("x", function(d) {
 			return xScale(d['x']) - (metadata.circle_size * 3);
 		})
@@ -226,7 +251,7 @@ function vizBenchmark() {
 		})
         .attr("width", metadata.circle_size * 6)
         .attr("height", metadata.circle_size * 6)
-		.attr("fill", function(d) {return colors[d.index - 1];})
+		.attr("fill", function(d) {return colors[d.index];})
 		.style("opacity", 1)
         .on("mouseover", function (d) {
 		
@@ -241,7 +266,9 @@ function vizBenchmark() {
                 .style("opacity", .85)
 				.style("left", (left) + "px")
                 .style("top", (d3.event.pageY - 25) + "px");
-            div.html("#" + d.index + ": Capacity " + d.capacity + " / Cost " +  d.cost + " (X:" + d.x + ", Y:" + d.y + ")");
+            div.html("F" + d.index + ": Cap. used: " + d.capacityUsed + "/" 
+                      + d.capacity + ". Cost: " +  d.cost 
+                      + " (X:" + roundNumber(d.x,2) + ", Y:" + roundNumber(d.y,2) + ")");
         })
         .on("mouseout", function (d) {
             div.transition()
@@ -249,7 +276,7 @@ function vizBenchmark() {
                 .style("opacity", 0);
         });
 		
-	//warehouses
+	//facilities
     svg.select("#customers").selectAll("circle")
         .data(customers)
         .enter()
@@ -273,7 +300,9 @@ function vizBenchmark() {
                 .style("opacity", .85)
 				.style("left", (left) + "px")
                 .style("top", (d3.event.pageY - 25) + "px");
-            div.html("#" + d.index + ": Demand " + d.demand + " (X:" + d.x + ", Y:" + d.y + ") WH: #" + (Number(assignments[d.index - 1]) + 1));
+            div.html("C" + d.index + ": Demand " + d.demand + " (X:" 
+                     + roundNumber(d.x,2) + ", Y:" + roundNumber(d.y,2) + ") Facility: " 
+                     + (d.facility === null ? "None": d.facility.index));
         })
         .on("mouseout", function (d) {
             div.transition()
@@ -288,7 +317,7 @@ function vizBenchmark() {
 	d3.selectAll("#solutionTable tbody *").remove();
 
     metadataStr += "<tr><td colspan='2' class='metaSectionTitle'>Problem</td></tr>";
-    metadataStr += "<tr><td class='metaElement'><img src='images/square.png'> Warehouses</td><td class='metaValue'>" + metadata.warehouseCount + "</td></tr>";
+    metadataStr += "<tr><td class='metaElement'><img src='images/square.png'> Facilities</td><td class='metaValue'>" + metadata.facilityCount + "</td></tr>";
     metadataStr += "<tr><td class='metaElement'><img src='images/circle.png'> Customers</td><td class='metaValue'>" + metadata.customerCount + "</td></tr>";
 
     d3.select("#problemTable tbody").html(metadataStr);
@@ -326,11 +355,14 @@ function vizSolution() {
 
     var svg = d3.select("#viz svg");
    
-    //assign colors to customers to match assigned warehouse
+    //assign colors to customers to match assigned facility
 	svg.select("#customers").selectAll("circle")
 		.attr("fill", function(d) {
-			var color = colors[assignments[d.index - 1]];
-			return color;
+		    if (d.facility == null) {
+		        return NODE_COLOR;
+			} else {
+			    return colors[d.facility.index];
+	        }
 		}
 	);
 
@@ -338,6 +370,9 @@ function vizSolution() {
 	svg.select("#connections").selectAll("line").data([]).exit().remove();
 	
 	for (var i = 0; i < customers.length; i++) {
+	    if (customers[i].facility == null) {
+	        continue;
+	    }
 	
 		svg.select("#connections")
 			.append("line")
@@ -351,17 +386,17 @@ function vizSolution() {
 				return yScale(cust.y);
 			})
 			.attr("x2", function(d) {
-				var wh = warehouses[assignments[i]];
-				return xScale(wh.x);
+				var fac = customers[i].facility;
+				return xScale(fac.x);
 			})
 			.attr("y2", function(d) {
-				var wh = warehouses[assignments[i]];
-				return yScale(wh.y);
+				var fac = customers[i].facility;
+				return yScale(fac.y);
 			})
 			.attr("stroke-width", metadata.circle_size)
 			.attr("stroke", function(d) {
-				var wh = warehouses[assignments[i]];
-				return colors[wh.index-1];
+				var fac = customers[i].facility;
+				return colors[fac.index];
 			})
 			.style("opacity", .5);;
 	
@@ -370,12 +405,53 @@ function vizSolution() {
 }
     
 function loadBenchmark(text){
-    parseInputText(text);
+    if (parseInputText(text));
     vizBenchmark();
 }
     
 function loadSolution(text){
-    parseSolutionText(text);
-    vizSolution();
+    var valid = parseSolutionText(text)
+    if (valid) {
+        vizSolution();
+    }
+}
+
+function checkValidity() {
+	var errors = [];
+	var cost = 0;
+	var unassigned = []
+	customers.forEach(function(cust) {
+	    if (cust.facility === null) {
+	        unassigned.push(cust.index)
+	    } else {
+    	    cost += dist(cust, cust.facility);
+    	}
+	});
+	if (unassigned.length > 0) {
+	     errors.push(errorMessage(unassigned, "not assigned to a valid facility",
+	                              "Customer"));
+	}
+	
+	var overCapacity = [];
+	facilities.forEach(function(fac) {
+	    if (fac.capacityUsed > fac.capacity) {
+	        overCapacity.push(fac.index) ;  
+	    }
+	    if (fac.capacityUsed > 0) {
+	        cost += fac.cost;
+	    }
+	});
+	if (overCapacity.length > 0) {
+	    errors.push(errorMessage(overCapacity, "over capacity", 
+	                             "Facility", "Facilities"));
+	}
+	if (Math.abs(cost - metadata.objectiveVal) > .0001) {
+	    errors.push("Solution reports cost as " + roundNumber(metadata.objectiveVal,4) 
+	                + ", but actual cost is " + roundNumber(cost,4) 
+	                + ".");
+	}
+    
+    reportError(errors.join(" "));
+    return true;
 }
     
