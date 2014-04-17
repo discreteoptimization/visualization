@@ -445,7 +445,7 @@ function checkValidity() {
 	    errors.push(errorMessage(overCapacity, "over capacity", 
 	                             "Facility", "Facilities"));
 	}
-	if (Math.abs(cost - metadata.objectiveVal) > .0001) {
+	if (Math.abs(cost - metadata.objectiveVal) > .01) {
 	    errors.push("Solution reports cost as " + roundNumber(metadata.objectiveVal,4) 
 	                + ", but actual cost is " + roundNumber(cost,4) 
 	                + ".");
