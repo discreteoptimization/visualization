@@ -116,16 +116,24 @@ function parseSolutionText(data, size) {
     metadata.objectiveVal = parseFloat(params[0]);
     metadata.isOptimal = parseInt(params[1]);
 
+    //delete old vehicle assignments
+    for (var i = 1; i < points.length; i++) {
+        delete points[i].vehicle;
+    }
+
     //routes for vehicles
     var seq = [];
 
     for (var i = 1; i < lines.length; i++) {
 
         //yes I know this is evil...
-        seq = lines[i].split(REGEX_WHITESPACE);
+        seq = lines[i].replace(REGEX_TRAILING_WHITESPACE,'').split(REGEX_WHITESPACE);
 
         for (var j = 0; j < seq.length; j++) {
             seq[j] = parseInt(seq[j]);
+            if (seq[j] != 0) {
+                points[seq[j]].vehicle = i-1;
+            }
         }
 
         routes[i - 1] = seq;
@@ -268,7 +276,18 @@ function vizBenchmark() {
                 .style("opacity", .85)
 				.style("left", (left) + "px")
                 .style("top", (d3.event.pageY - 25) + "px");
-            div.html("#" + d.index + ": Demand " + d.demand + " (X:" + d.x + ", Y:" + d.y + ")");
+                
+            if (typeof d.vehicle == "number") {
+                var vehicleInfo = ", Vehicle " + d.vehicle;
+            } else {
+                var vehicleInfo = "";
+            }
+            if (d.index == 0) {
+                div.html("#" + d.index + ": Depot (X:" + d.x + ", Y:" + d.y + ")");
+            } else {
+                div.html("#" + d.index + ": Demand " + d.demand + " (X:" 
+                        + d.x + ", Y:" + d.y + ")" + vehicleInfo);
+            }
         })
         .on("mouseout", function (d) {
             div.transition()
@@ -378,6 +397,39 @@ function vizSolution() {
 
     }
 
+    d3.select("#viz svg #nodes").selectAll("circle")
+        .data(points)
+        .attr("class", function (d) { return "vh" + d.vehicle });
+        
+    var vehicleClasses = []
+    for (var v = 0; v < metadata.vehiclesUsed; v++) {
+        vehicleClasses.push(".vh" + v)
+    }
+    console.log(vehicleClasses);
+    d3.select("#solutionTable tbody").selectAll(".metaVehicleTitle")
+        .data(vehicleClasses)
+        .on("mouseover", function (vehicleClass) {
+            d3.select(this).classed("highlighted", true);
+			d3.select("#viz svg #nodes").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("r", metadata.circle_size * 2);
+			d3.select("#viz svg #links").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("stroke-width", line_width * 2);
+        })
+        .on("mouseout", function (vehicleClass) {
+            d3.select(this).classed("highlighted", false);
+			d3.select("#viz svg #nodes").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("r", metadata.circle_size);
+			d3.select("#viz svg #links").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("stroke-width", line_width);
+        });
 }
     
 function loadBenchmark(text){
