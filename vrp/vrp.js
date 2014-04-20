@@ -116,16 +116,35 @@ function parseSolutionText(data, size) {
     metadata.objectiveVal = parseFloat(params[0]);
     metadata.isOptimal = parseInt(params[1]);
 
+    //delete old vehicle assignments
+    for (var i = 1; i < points.length; i++) {
+        delete points[i].vehicle;
+    }
+
     //routes for vehicles
     var seq = [];
+
+    var invalidPoints = [];
+    var duplicatePoints = [];
+    var unusedPoints = [];
 
     for (var i = 1; i < lines.length; i++) {
 
         //yes I know this is evil...
-        seq = lines[i].split(REGEX_WHITESPACE);
+        seq = lines[i].replace(REGEX_TRAILING_WHITESPACE,'').split(REGEX_WHITESPACE);
 
         for (var j = 0; j < seq.length; j++) {
-            seq[j] = parseInt(seq[j]);
+            var point = parseInt(seq[j]);
+            if (point >= 0 && point < points.length) {
+                if (point > 0 && typeof points[point].vehicle != "undefined" &&
+                    duplicatePoints.indexOf(point) == -1) {
+                    duplicatePoints.push(point);
+                }
+                points[point].vehicle = i-1;
+                seq[j] = point;
+            } else {
+                invalidPoints.push(seq[j]);
+            }
         }
 
         routes[i - 1] = seq;
@@ -134,10 +153,32 @@ function parseSolutionText(data, size) {
         var edge;
         edges[i - 1] = [];
         for (var j = 0; j < seq.length - 1; j++) {
-            edge = { 'from': points[seq[j]], 'to': points[seq[j + 1]] }
-            edges[i - 1][j] = edge;
+            if (seq[j] >= 0 && seq[j] < points.length &&
+                               seq[j+1] >= 0 && seq[j+1] < points.length) {
+                edge = { 'from': points[seq[j]], 'to': points[seq[j + 1]]}
+                edges[i - 1].push(edge);
+            }
         }
-
+    }
+    
+    for (var i = 1; i < points.length; i++) {
+        if (typeof points[i].vehicle == "undefined") {
+            unusedPoints.push(i);
+        }
+    }
+    
+    var errors = [];
+    if (invalidPoints.length > 0) {
+        errors.push(errorMessage(invalidPoints, "found in solution", "Invalid customer"));
+    }
+    if (duplicatePoints.length > 0) {
+        errors.push(errorMessage(duplicatePoints, "visited more than once", "Customer"));
+    }
+    if (unusedPoints.length > 0) {
+        errors.push(errorMessage(unusedPoints, "not visited", "Customer"));
+    }
+    if (errors.length > 0) {
+        reportError(errors.join(" "));
     }
 
     if (DEBUG) {
@@ -268,7 +309,18 @@ function vizBenchmark() {
                 .style("opacity", .85)
 				.style("left", (left) + "px")
                 .style("top", (d3.event.pageY - 25) + "px");
-            div.html("#" + d.index + ": Demand " + d.demand + " (X:" + d.x + ", Y:" + d.y + ")");
+                
+            if (typeof d.vehicle == "number") {
+                var vehicleInfo = ", Vehicle " + (d.vehicle+1);
+            } else {
+                var vehicleInfo = "";
+            }
+            if (d.index == 0) {
+                div.html("Depot (X:" + d.x + ", Y:" + d.y + ")");
+            } else {
+                div.html("#" + d.index + ": Demand " + d.demand + " (X:" 
+                        + d.x + ", Y:" + d.y + ")" + vehicleInfo);
+            }
         })
         .on("mouseout", function (d) {
             div.transition()
@@ -378,6 +430,39 @@ function vizSolution() {
 
     }
 
+    d3.select("#viz svg #nodes").selectAll("circle")
+        .data(points)
+        .attr("class", function (d) { return "vh" + d.vehicle });
+        
+    var vehicleClasses = []
+    for (var v = 0; v < metadata.vehiclesUsed; v++) {
+        vehicleClasses.push(".vh" + v)
+    }
+    console.log(vehicleClasses);
+    d3.select("#solutionTable tbody").selectAll(".metaVehicleTitle")
+        .data(vehicleClasses)
+        .on("mouseover", function (vehicleClass) {
+            d3.select(this).classed("highlighted", true);
+			d3.select("#viz svg #nodes").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("r", metadata.circle_size * 2);
+			d3.select("#viz svg #links").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("stroke-width", line_width * 2);
+        })
+        .on("mouseout", function (vehicleClass) {
+            d3.select(this).classed("highlighted", false);
+			d3.select("#viz svg #nodes").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("r", metadata.circle_size);
+			d3.select("#viz svg #links").selectAll(vehicleClass)
+			    .transition()
+			    .duration(200)
+			    .attr("stroke-width", line_width);
+        });
 }
     
 function loadBenchmark(text){

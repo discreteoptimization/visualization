@@ -145,6 +145,10 @@ SOFTWARE.
     overflow: hidden;
 }
 
+.metadataTable td.highlighted {
+    background-color: #e1eef4;
+}
+
 .metadataTable td.metaGraphElement .title{
     text-align: center;
     font-size: 90%;
@@ -152,9 +156,9 @@ SOFTWARE.
 div.tooltip {   
   position: absolute;           
   text-align: center;           
-  width: 200px;                  
+  width: 220px;                  
   min-height: 20px;                 
-  padding: 2px;                     
+  padding: 2px 4px;                     
   background: #555;   
   border: 0px;    
   color: #fff;  
