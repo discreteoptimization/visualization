@@ -200,7 +200,14 @@ function vizBenchmark() {
         .enter()
         .append("rect")
         .attr("id", function (d) { return "setPnt" + d.i; })
-		    .attr("fill", function(d) {return colors[d.i];})
+		    .attr("fill", function(d) {return colors[d.i];})        
+		    .attr("class", function(d) {
+            var classes = "set"+d.i
+            for (var i = 0; i < d.items.length; i++) {
+              classes = classes + " item"+d.items[i];
+            }
+            return classes; 
+            })
 		    .style("opacity", 1)
         .call(force.drag)
         .on("dblclick", function(d) { d.fixed = false; })
@@ -216,21 +223,45 @@ function vizBenchmark() {
              .style("opacity", .85)
              .style("left", (left) + "px")
              .style("top", (d3.event.pageY - 25) + "px");
-          div.html("Set " + d.i);
+          div.html("Set " + d.i + ". Cost: " + d.cost);
+          
           svg.selectAll(".set"+d.i)
-//               .transition()
-//               .duration(20)
               .classed("highlighted", true);
-
-          })
+          var connectors = svg.append("g")
+                .attr("id", "set"+d.i+"g")
+                .style("pointer-events", "none");
+          for (var i = 0; i < d.items.length; i++) {
+              var item = items[d.items[i]];
+              var link = svg.select("line#set"+d.i+"item"+item.i);
+              var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
+              var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
+              connectors.append("line")
+                        .attr("stroke", "#4488ff")
+                        .attr("stroke-width", 4)
+                        .attr("x1", d.x)
+                        .attr("y1", d.y)
+                        .attr("x2", linkX)
+                        .attr("y2", linkY);
+              connectors.append("line")
+                        .attr("stroke", "#4488ff")
+                        .attr("stroke-width", 4)
+                        .attr("x1", item.x)
+                        .attr("y1", item.y)
+                        .attr("x2", linkX)
+                        .attr("y2", linkY);         
+            }
+        })
         .on("mouseout", function (d) {
             div.transition()
                 .duration(500)
                 .style("opacity", 0);
             svg.selectAll(".set"+d.i)
-//                 .transition()
-//                 .duration(20)
                 .classed("highlighted", false);
+            svg.selectAll("g#set"+d.i+"g")
+                .transition()
+                .duration(100)
+                .style("opacity",0)
+                .remove();
         });
 		
   	//items
@@ -264,11 +295,44 @@ function vizBenchmark() {
 				     .style("left", (left) + "px")
              .style("top", (d3.event.pageY - 25) + "px");
           div.html("Item " + d.i);
+          
+          svg.selectAll(".item"+d.i)
+              .classed("highlighted", true);
+          var connectors = svg.append("g")
+                .attr("id", "item"+d.i+"g")
+                .style("pointer-events", "none");
+          for (var i = 0; i < d.coveredBy.length; i++) {
+              var theSet = sets[d.coveredBy[i]];
+              var link = svg.select("line#set"+theSet.i+"item"+d.i);
+              var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
+              var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
+              connectors.append("line")
+                        .attr("stroke", "#4488ff")
+                        .attr("stroke-width", 4)
+                        .attr("x1", d.x)
+                        .attr("y1", d.y)
+                        .attr("x2", linkX)
+                        .attr("y2", linkY);
+              connectors.append("line")
+                        .attr("stroke", "#4488ff")
+                        .attr("stroke-width", 4)
+                        .attr("x1", theSet.x)
+                        .attr("y1", theSet.y)
+                        .attr("x2", linkX)
+                        .attr("y2", linkY);         
+            }
         })
         .on("mouseout", function (d) {
             div.transition()
                .duration(500)
                .style("opacity", 0);
+            svg.selectAll(".item"+d.i)
+                .classed("highlighted", false);
+            svg.selectAll("g#item"+d.i+"g")
+                .transition()
+                .duration(100)
+                .style("opacity",0)
+                .remove();
         });
 
     //links

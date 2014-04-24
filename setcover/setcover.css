@@ -23,16 +23,18 @@ SOFTWARE.
 */
 
 div.tooltip {    
-  width: 100px;                      
+  min-width: 100px;                      
 }
 .graph line.highlighted {
   stroke-width: 4;
 }
+/* 
 line.highlighted {
   stroke: #4488ff;
 }
+ */
   
-circle.highlighted {
+circle.highlighted, rect.highlighted{
   stroke-width: 3;
   stroke: #4488ff;
 }  
