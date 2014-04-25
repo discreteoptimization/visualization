@@ -29,12 +29,14 @@
             <tbody>
             </tbody>
         </table>
-        View:
-        <select name="vizType" id="vizType" onchange="selectViz(this.value)">
-          <option value="forceGraph">Force Graph</option>
-          <option value="bipartiteGraph">Bipartite Graph</option>
-          <option value="matrix">Matrix</option>
-        </select>
+        <div id="viewSelector">
+            View:
+            <select name="vizType" id="vizType" onchange="selectViz(this.value)">
+              <option value="matrix">Matrix</option>
+              <option value="forceGraph">Force Directed Graph</option>
+              <option value="bipartiteGraph">Bipartite Graph</option>
+            </select>
+        </div>
     </div>
     <div id="viz"><svg id="svgMain"></svg></div>
     <pre id="debug"></pre>

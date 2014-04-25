@@ -28,11 +28,7 @@ div.tooltip {
 .graph line.highlighted {
   stroke-width: 4;
 }
-/* 
-line.highlighted {
-  stroke: #4488ff;
-}
- */
+
   
 circle.highlighted, rect.highlighted{
   stroke-width: 3;
@@ -42,3 +38,7 @@ circle.highlighted, rect.highlighted{
 circle.covered {
   fill: #00aa00;
 } 
+
+#viewSelector {
+  margin-top: 10px;
+}

@@ -36,6 +36,7 @@ var sets = [];
 var items = [];
 var colors = [];
 var links = [];
+var vizType;
 var nodes;
 var lines;
 var force;
@@ -188,10 +189,10 @@ function vizBenchmark() {
         .nodes(sets.concat(items))
         .links(links);
 	  
-	  var drag = force.drag()
-        .on("dragstart", function(d) { d.fixed = true; });
-	  		  
-		var svg = d3.select("#viz")
+// 	  var drag = force.drag()
+//         .on("dragstart", function(d) { d.fixed = true; });
+// 	  		  
+    var svg = d3.select("#viz")
         .append("svg")
         .attr("class", "svgMain")
 		
@@ -215,7 +216,7 @@ function vizBenchmark() {
             return classes; 
             })
 		    .style("opacity", 1)
-        .call(force.drag)
+//         .call(force.drag)
         .on("dblclick", function(d) { d.fixed = false; })
         .on("mouseover", function (d) {
           //prevent tool tip from falling off page
@@ -236,27 +237,29 @@ function vizBenchmark() {
           var connectors = svg.append("g")
                 .attr("id", "set"+d.i+"g")
                 .style("pointer-events", "none");
-          for (var i = 0; i < d.items.length; i++) {
-              var item = items[d.items[i]];
-              var link = svg.select("line#set"+d.i+"item"+item.i);
-              var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
-              var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
-              connectors.append("line")
-                        .attr("stroke", d.chosen ? 
-                              colors[d.i] : LINK_COLOR)
-                        .attr("stroke-width", 4)
-                        .attr("x1", d.x)
-                        .attr("y1", d.y)
-                        .attr("x2", linkX)
-                        .attr("y2", linkY);
-              connectors.append("line")
-                        .attr("stroke", d.chosen ? 
-                              colors[d.i] : LINK_COLOR)
-                        .attr("stroke-width", 4)
-                        .attr("x1", item.x)
-                        .attr("y1", item.y)
-                        .attr("x2", linkX)
-                        .attr("y2", linkY);         
+          if (svg.classed("matrix")) {
+              for (var i = 0; i < d.items.length; i++) {
+                  var item = items[d.items[i]];
+                  var link = svg.select("line#set"+d.i+"item"+item.i);
+                  var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
+                  var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
+                  connectors.append("line")
+                            .attr("stroke", d.chosen ? 
+                                  colors[d.i] : LINK_COLOR)
+                            .attr("stroke-width", 4)
+                            .attr("x1", d.x)
+                            .attr("y1", d.y)
+                            .attr("x2", linkX)
+                            .attr("y2", linkY);
+                  connectors.append("line")
+                            .attr("stroke", d.chosen ? 
+                                  colors[d.i] : LINK_COLOR)
+                            .attr("stroke-width", 4)
+                            .attr("x1", item.x)
+                            .attr("y1", item.y)
+                            .attr("x2", linkX)
+                            .attr("y2", linkY);         
+                }
             }
         })
         .on("mouseout", function (d) {
@@ -287,7 +290,7 @@ function vizBenchmark() {
             })
 		    .attr("fill", NODE_COLOR)
 		    .style("opacity", 1)
-        .call(force.drag)        
+//         .call(force.drag)        
         .on("dblclick", function(d) { d.fixed = false; })
         .on("mouseover", function (d) {
     
@@ -309,27 +312,28 @@ function vizBenchmark() {
           var connectors = svg.append("g")
                 .attr("id", "item"+d.i+"g")
                 .style("pointer-events", "none");
-          for (var i = 0; i < d.sets.length; i++) {
-              var theSet = sets[d.sets[i]];
-              var link = svg.select("line#set"+theSet.i+"item"+d.i);
-              var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
-              var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
-              connectors.append("line")
-                        .attr("stroke", theSet.chosen ? 
-                              colors[theSet.i] : LINK_COLOR)
-                        .attr("stroke-width", 4)
-                        .attr("x1", d.x)
-                        .attr("y1", d.y)
-                        .attr("x2", linkX)
-                        .attr("y2", linkY);
-              connectors.append("line")
-                        .attr("stroke", theSet.chosen ? 
-                              colors[theSet.i] : LINK_COLOR)
-                        .attr("stroke-width", 4)
-                        .attr("x1", theSet.x)
-                        .attr("y1", theSet.y)
-                        .attr("x2", linkX)
-                        .attr("y2", linkY);         
+          if (svg.classed("matrix")) {
+              for (var i = 0; i < d.sets.length; i++) {
+                  var theSet = sets[d.sets[i]];
+                  var link = svg.select("line#set"+theSet.i+"item"+d.i);
+                  var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
+                  var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
+                  connectors.append("line")
+                            .attr("stroke", LINK_COLOR)
+                            .attr("stroke-width", 4)
+                            .attr("x1", d.x)
+                            .attr("y1", d.y)
+                            .attr("x2", linkX)
+                            .attr("y2", linkY);
+                  connectors.append("line")
+                            .attr("stroke", theSet.chosen ? 
+                                  colors[theSet.i] : LINK_COLOR)
+                            .attr("stroke-width", 4)
+                            .attr("x1", theSet.x)
+                            .attr("y1", theSet.y)
+                            .attr("x2", linkX)
+                            .attr("y2", linkY);         
+                }
             }
         })
         .on("mouseout", function (d) {
@@ -511,7 +515,7 @@ function vizSolution() {
 	//draw connecting lines
 // 	svg.select("#links").selectAll("line").data([]).exit().remove();
 	
-    svg.select("#links").selectAll("line")
+    var lines = svg.select("#links").selectAll("line")
         .attr("stroke", function(d) {
             if (d.source.chosen) {
                 return colors[d.source.i];
@@ -519,7 +523,9 @@ function vizSolution() {
                 return NODE_COLOR;
             } 
         })
-        .attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; });
+    if (svg.classed("graph")) {
+        lines.attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; });
+    }
     svg.select("#sets").selectAll("rect")
         .attr("fill", function(d) {
             if (d.chosen) {
