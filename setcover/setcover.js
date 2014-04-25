@@ -195,6 +195,8 @@ function vizBenchmark() {
     var svg = d3.select("#viz")
         .append("svg")
         .attr("class", "svgMain")
+        .attr("width", metadata.graphWidth)
+        .attr("height", metadata.graphHeight);
 		
     //parent groups for sets, items, and links
     svg.append("g").attr("id", "links");
@@ -393,13 +395,13 @@ function vizMatrix() {
     svg.selectAll("circle, rect").each(function(d) { d.fixed = true; });
     var inc = Math.min(metadata.graphHeight/(sets.length+1), 
                        metadata.graphWidth/(items.length+1));
-    if (inc < 8) inc = 8;
+    if (inc < 5) inc = 5;
     
     // make sure svg is large enough
     var minHeight = inc * (sets.length + 1);
     var minWidth = inc * (items.length + 1);
-    if (minHeight > svg[0][0].clientHeight) svg.style("height", minHeight);
-    if (minWidth > svg[0][0].clientWidth) svg.style("width", minWidth);
+    if (minHeight > svg[0][0].clientHeight) svg.attr("height", minHeight);
+    if (minWidth > svg[0][0].clientWidth) svg.attr("width", minWidth);
     
     var circleSize = Math.min(inc*.45, metadata.circleSize);
     for (var i = 0; i < sets.length; i++) {
