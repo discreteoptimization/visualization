@@ -38,3 +38,7 @@ circle.highlighted, rect.highlighted{
   stroke-width: 3;
   stroke: #4488ff;
 }  
+
+circle.covered {
+  fill: #00aa00;
+} 

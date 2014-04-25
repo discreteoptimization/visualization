@@ -24,6 +24,10 @@ SOFTWARE.
 
 "use strict";
 
+var LINK_COLOR = "#888888";
+var SET_COLOR = "#aaaaaa";
+var COVERED_ITEM_COLOR = "#00aa00";
+var HIGHLIGHTED_LINK_COLOR = "#4488ff";
 var metadata = {
     "isOptimal": 0, "objectiveVal": 0, "itemCount": 0, "setCount": 0,
     "graphHeight": 0, "graphWidth": 0, "circleSize": 0
@@ -61,7 +65,7 @@ function parseInputText(data) {
         
     items = [];
     for (var i = 0; i < metadata.itemCount; i++) {
-      items[i] = { i: i, coveredBy: [] }
+      items[i] = { i: i, sets: [], covered: false }
     }
     
 	  sets = [];
@@ -71,11 +75,11 @@ function parseInputText(data) {
 
         parts = lines[i].trim().split(REGEX_WHITESPACE);
 
-        theSet = { 'i': i-1, 'cost':parseFloat(parts[0])}
+        theSet = { 'i': i-1, 'cost':parseFloat(parts[0]), 'chosen': false}
         theSet.items = parts.slice(1).map(function(el) { return parseInt(el); });
         sets[i - 1] = theSet;
         for (var j = 0; j < theSet.items.length; j++) {
-          items[theSet.items[j]].coveredBy.push(i-1);
+          items[theSet.items[j]].sets.push(i-1);
           links.push({source:theSet, target:items[theSet.items[j]]});
         }
     }
@@ -96,24 +100,26 @@ function parseSolutionText(data, size) {
     metadata.objectiveVal = parseFloat(params[0]);
     metadata.isOptimal = parseInt(params[1]);
 
-    //facility assignments
-    var assignments = lines[1].split(REGEX_WHITESPACE);
+    //set choices
+    var choices = lines[1].trim().split(REGEX_WHITESPACE);
     
-    for (var i = 0; i < facilities.length; i++) {
-        facilities[i].capacityUsed = 0;
-    }
+    for (var i = 0; i < items.length; i++) {
+        items[i].covered = false;
+    }    
     
-    for (var i = 0; i < customers.length; i++) {
-        if (i >= assignments.length || assignments[i] < 0 || 
-                                       assignments[i] >= facilities.length) {
-            customers[i].facility = null;
+    for (var i = 0; i < sets.length; i++) {
+        if (i >= choices.length || choices[i] == 0) {
+            sets[i].chosen = false;
         } else {
-    	    facilities[assignments[i]].capacityUsed += customers[i].demand;
-	        customers[i].facility = facilities[Number(assignments[i])];
+            sets[i].chosen = true;
+            for (var j = 0; j < sets[i].items.length; j++) {
+                items[sets[i].items[j]].covered = true;
+            }
 	    }
     }
     
-    return checkValidity();
+    return true;  
+//     return checkValidity();
 }
     
 function cleanViz(){
@@ -200,7 +206,7 @@ function vizBenchmark() {
         .enter()
         .append("rect")
         .attr("id", function (d) { return "setPnt" + d.i; })
-		    .attr("fill", function(d) {return colors[d.i];})        
+		    .attr("fill", SET_COLOR)        
 		    .attr("class", function(d) {
             var classes = "set"+d.i
             for (var i = 0; i < d.items.length; i++) {
@@ -236,14 +242,16 @@ function vizBenchmark() {
               var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
               var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
               connectors.append("line")
-                        .attr("stroke", "#4488ff")
+                        .attr("stroke", d.chosen ? 
+                              colors[d.i] : LINK_COLOR)
                         .attr("stroke-width", 4)
                         .attr("x1", d.x)
                         .attr("y1", d.y)
                         .attr("x2", linkX)
                         .attr("y2", linkY);
               connectors.append("line")
-                        .attr("stroke", "#4488ff")
+                        .attr("stroke", d.chosen ? 
+                              colors[d.i] : LINK_COLOR)
                         .attr("stroke-width", 4)
                         .attr("x1", item.x)
                         .attr("y1", item.y)
@@ -272,8 +280,8 @@ function vizBenchmark() {
         .attr("id", function (d) { return "itemPnt" + d.i; })
         .attr("class", function(d) {
             var classes = "item"+d.i
-            for (var i = 0; i < d.coveredBy.length; i++) {
-              classes = classes + " set"+d.coveredBy[i];
+            for (var i = 0; i < d.sets.length; i++) {
+                classes = classes + " set"+d.sets[i];
             }
             return classes; 
             })
@@ -301,20 +309,22 @@ function vizBenchmark() {
           var connectors = svg.append("g")
                 .attr("id", "item"+d.i+"g")
                 .style("pointer-events", "none");
-          for (var i = 0; i < d.coveredBy.length; i++) {
-              var theSet = sets[d.coveredBy[i]];
+          for (var i = 0; i < d.sets.length; i++) {
+              var theSet = sets[d.sets[i]];
               var link = svg.select("line#set"+theSet.i+"item"+d.i);
               var linkX = (parseFloat(link.attr("x1")) + parseFloat(link.attr("x2")))/2;
               var linkY = (parseFloat(link.attr("y1")) + parseFloat(link.attr("y2")))/2;
               connectors.append("line")
-                        .attr("stroke", "#4488ff")
+                        .attr("stroke", theSet.chosen ? 
+                              colors[theSet.i] : LINK_COLOR)
                         .attr("stroke-width", 4)
                         .attr("x1", d.x)
                         .attr("y1", d.y)
                         .attr("x2", linkX)
                         .attr("y2", linkY);
               connectors.append("line")
-                        .attr("stroke", "#4488ff")
+                        .attr("stroke", theSet.chosen ? 
+                              colors[theSet.i] : LINK_COLOR)
                         .attr("stroke-width", 4)
                         .attr("x1", theSet.x)
                         .attr("y1", theSet.y)
@@ -343,7 +353,7 @@ function vizBenchmark() {
         .attr("id", function (d) { return "set" + d.source.i + "item"+d.target.i; })
         .attr("class", function(d) { return "set"+d.source.i +" item"+d.target.i; })
         .style("opacity", .5)
-        .attr("stroke", "#888888");
+        .attr("stroke", LINK_COLOR);
    	
 		force.on("tick", function() {
 		  lines.attr("x1", function(d) { return d.source.x; })
@@ -425,7 +435,7 @@ function vizForce() {
     var svg = d3.select("#viz .svgMain");
     svg.selectAll("circle, rect").each(function(d) { d.fixed = false; });
     svg.selectAll("line")
-      .attr("stroke-width", 1);
+      .attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; });
     svg.selectAll("circle")
       .attr("r", metadata.circleSize);
     svg.selectAll("rect")
@@ -440,7 +450,7 @@ function vizBipartite() {
     force.stop();
     var svg = d3.select("#viz .svgMain");
     svg.selectAll("line")
-      .attr("stroke-width", 1)
+      .attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; })
     svg.selectAll("circle, rect").each(function(d) { d.fixed = true; });
     
     var inc = (metadata.graphHeight-2*metadata.circleSize)/sets.length;
@@ -483,7 +493,7 @@ function vizBipartite() {
 function vizSolution() {
 
     //solution details
-	d3.selectAll("#solutionTable tbody *").remove();
+	  d3.selectAll("#solutionTable tbody *").remove();
 	
     var metadataStr = "";
     metadataStr += "<tr><td colspan='2' class='metaSectionTitle'>Your Solution</td></tr>";
@@ -492,65 +502,32 @@ function vizSolution() {
 
     d3.select("#solutionTable tbody").html(d3.select("#solutionTable tbody").html() + metadataStr);
 
-    var line_width = metadata.circle_size / 2;
-        
-    var xScale = d3.scale.linear()
-        .domain([metadata.x_min, metadata.x_max])
-        .range([Y_AXIS_PAD + PAD_ADJUST, metadata.graphWidth - PAD_ADJUST]);
-
-    var yScale = d3.scale.linear()
-        .domain([metadata.y_min, metadata.y_max])
-        .range([metadata.graphHeight - PAD_ADJUST - X_AXIS_PAD, PAD_ADJUST]);
-
     var svg = d3.select("#viz svg");
    
     //assign colors to customers to match assigned facility
-	svg.select("#customers").selectAll("circle")
-		.attr("fill", function(d) {
-		    if (d.facility == null) {
-		        return NODE_COLOR;
-			} else {
-			    return colors[d.facility.i];
-	        }
-		}
-	);
+	svg.select("#items").selectAll("circle")
+		.classed("covered", function(d) { return d.covered } );
 
 	//draw connecting lines
 // 	svg.select("#links").selectAll("line").data([]).exit().remove();
 	
-	for (var i = 0; i < customers.length; i++) {
-	    if (customers[i].facility == null) {
-	        continue;
-	    }
-	
-		svg.select("#links")
-			.append("line")
-			.attr("id", function (d) { return "assignLine" + (i + 1); })
-			.attr("x1", function(d) {
-				var cust = customers[i];
-				return xScale(cust.x);
-			})
-			.attr("y1", function(d) {
-				var cust = customers[i];
-				return yScale(cust.y);
-			})
-			.attr("x2", function(d) {
-				var fac = customers[i].facility;
-				return xScale(fac.x);
-			})
-			.attr("y2", function(d) {
-				var fac = customers[i].facility;
-				return yScale(fac.y);
-			})
-			.attr("stroke-width", metadata.circle_size)
-			.attr("stroke", function(d) {
-				var fac = customers[i].facility;
-				return colors[fac.i];
-			})
-			.style("opacity", .5);;
-	
-	}
-
+    svg.select("#links").selectAll("line")
+        .attr("stroke", function(d) {
+            if (d.source.chosen) {
+                return colors[d.source.i];
+            } else {
+                return NODE_COLOR;
+            } 
+        })
+        .attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; });
+    svg.select("#sets").selectAll("rect")
+        .attr("fill", function(d) {
+            if (d.chosen) {
+                return colors[d.i];
+            } else {
+                return NODE_COLOR;
+            } 
+        });
 }
     
 function loadBenchmark(text){
