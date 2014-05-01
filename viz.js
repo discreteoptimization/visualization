@@ -65,78 +65,73 @@ function handleDragEnd(e) {
 }
 
 
-function getFile(e) {
+function getFiles(e) {
     var files = e.dataTransfer.files;
     if(files.length <= 0){
-        reportError("please drop a file")
-        return null;
+        reportError("please drop a file(s)")
+        return [];
     }
-    if(files.length > 1){
-        reportError("please drop only one file")
-        return null;
+    if(files.length > 2){
+        reportError("please drop at most two files")
+        return [];
     }
-    return files[0]
+    return files
 }
 
-function readFileAndLoad(file, loader) {
+function readFilesAndLoad(files, loader) {
     if (!window.FileReader) {
         reportError('your browser does not have the necessary file reader API.');
         return;
     }
     
-    var reader = new FileReader();
+    var left = files.length
+    var texts = []
 
-    reader.onload = function(e) {
-        //document.getElementById('debug').innerHTML = e.target.result;
-        loader(e.target.result)
+    for (var i = 0; i < files.length; i++) {
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            //document.getElementById('debug').innerHTML = e.target.result;
+            texts.push(e.target.result)
+            if (--left == 0) loader(texts)
+        }
+
+        reader.onerror = function(e) {
+            console.log(e.target);
+            if (--left == 0) loader(texts)
+        }
+
+        reader.readAsText(files[i]);
     }
-
-    reader.onerror = function(e) {
-        console.log(e.target);
-    }
-
-    reader.readAsText(file);
 }
 
-function handleDropBenchmark(e) {
+function loadFiles(texts){
+    for (var i = 0; i < texts.length; i++) {
+        if (isBenchmark(texts[i])) loadBenchmark(texts[i])
+    }
+    for (var i = 0; i < texts.length; i++) {
+        if (!isBenchmark(texts[i])) loadSolution(texts[i])
+    }
+}
+
+function handleDrop(e) {
     // this / e.target is current target element.
     e.stopPropagation(); // stops the browser from redirecting.
     e.preventDefault();
-    
+
     var cols = document.querySelectorAll('.drop_zone');
     [].forEach.call(cols, function (col) {
         col.classList.remove('over');
     });
     
     // See the section on the DataTransfer object.
-    file = getFile(e)
-    if(file == null){
+    files = getFiles(e)
+    if(!files){
         return false;
     }
 
     //document.getElementById('debug').innerHTML = file; 
-    readFileAndLoad(file, loadBenchmark);
-    return false;
-}
-
-function handleDropSolution(e) {
-    // this / e.target is current target element.
-    e.stopPropagation(); // stops the browser from redirecting.
-    e.preventDefault();
-
-    var cols = document.querySelectorAll('.drop_zone');
-    [].forEach.call(cols, function (col) {
-        col.classList.remove('over');
-    });
-    
-    // See the section on the DataTransfer object.
-    file = getFile(e)
-    if(file == null){
-        return false;
-    }
-
-    readFileAndLoad(file, loadSolution);
-    
+    readFilesAndLoad(files, loadFiles);
     return false;
 }
 
@@ -154,14 +149,9 @@ function setup() {
 		col.addEventListener('dragend',   handleDragEnd, false);
 	});
 
-	var cols = document.querySelectorAll('#benchmark_zone');
+	var cols = document.querySelectorAll('#drop_zone');
 	[].forEach.call(cols, function(col) {
-		col.addEventListener('drop', handleDropBenchmark, false);
-	});
-
-	var cols = document.querySelectorAll('#solution_zone');
-	[].forEach.call(cols, function(col) {
-		col.addEventListener('drop', handleDropSolution, false);
+		col.addEventListener('drop', handleDrop, false);
 	});
 
 }
