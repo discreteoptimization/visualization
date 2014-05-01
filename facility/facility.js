@@ -302,7 +302,7 @@ function vizBenchmark() {
                 .style("top", (d3.event.pageY - 25) + "px");
             div.html("C" + d.index + ": Demand " + d.demand + " (X:" 
                      + roundNumber(d.x,2) + ", Y:" + roundNumber(d.y,2) + ") Facility: " 
-                     + (d.facility === null ? "None": d.facility.index));
+                     + (d.facility === null ? "None": d.facility.index + " [distance: " + roundNumber(dist(d.facility,d),2) + "]"));
         })
         .on("mouseout", function (d) {
             div.transition()
