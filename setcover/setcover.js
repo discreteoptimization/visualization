@@ -39,7 +39,6 @@ var links = [];
 var vizType;
 var nodes;
 var lines;
-var force;
 
 function parseInputText(data) {
 
@@ -120,7 +119,7 @@ function parseSolutionText(data, size) {
     }
     
     return true;  
-//     return checkValidity();
+
 }
     
 function cleanViz(){
@@ -171,7 +170,8 @@ function vizBenchmark() {
 
     d3.select("#problemTable tbody").html(metadataStr);
     //tool tips for circles
-	  d3.selectAll("div.tooltip").remove();
+	d3.selectAll("div.tooltip").remove();
+	
     var div = d3.select("body")
         .append("div")
         .attr("class", "tooltip")
@@ -179,19 +179,7 @@ function vizBenchmark() {
 	
 	  //unique colors for each set
 	  colors = makeColorGradient(metadata.setCount);
-    
-   	force = d3.layout.force()
-        .gravity(1)
-        .linkDistance(50)
-        .linkStrength(.5)
-        .charge(-500)
-        .size([metadata.graphWidth, metadata.graphHeight])
-        .nodes(sets.concat(items))
-        .links(links);
-	  
-// 	  var drag = force.drag()
-//         .on("dragstart", function(d) { d.fixed = true; });
-// 	  		  
+	  	  
     var svg = d3.select("#viz")
         .append("svg")
         .attr("class", "svgMain")
@@ -203,7 +191,7 @@ function vizBenchmark() {
     svg.append("g").attr("id", "sets");
     svg.append("g").attr("id", "items");
 		  
-	  //sets
+	//sets
     var squares = svg.select("#sets").selectAll("rect")
         .data(sets)
         .enter()
@@ -218,8 +206,7 @@ function vizBenchmark() {
             return classes; 
             })
 		    .style("opacity", 1)
-//         .call(force.drag)
-        .on("dblclick", function(d) { d.fixed = false; })
+
         .on("mouseover", function (d) {
           //prevent tool tip from falling off page
           var left = d3.event.pageX;
@@ -292,7 +279,7 @@ function vizBenchmark() {
             })
 		    .attr("fill", NODE_COLOR)
 		    .style("opacity", 1)
-//         .call(force.drag)        
+
         .on("dblclick", function(d) { d.fixed = false; })
         .on("mouseover", function (d) {
     
@@ -360,26 +347,12 @@ function vizBenchmark() {
         .attr("class", function(d) { return "set"+d.source.i +" item"+d.target.i; })
         .style("opacity", .5)
         .attr("stroke", LINK_COLOR);
-   	
-		force.on("tick", function() {
-		  lines.attr("x1", function(d) { return d.source.x; })
-           .attr("y1", function(d) { return d.source.y; })
-           .attr("x2", function(d) { return d.target.x; })
-           .attr("y2", function(d) { return d.target.y; });
-      squares.attr("x", function(d) { return (d.x - metadata.circleSize); } );
-      squares.attr("y", function(d) { return (d.y - metadata.circleSize); } );
-      circles.attr("cx", function(d) { return d.x; } );
-      circles.attr("cy", function(d) { return d.y; } );
-    });
-    
+        
     selectViz(document.getElementById("vizType").value)
 }
 
 function selectViz(option) {
     switch (option) {
-        case "forceGraph":
-            vizForce();
-            break;
         case "bipartiteGraph":
             vizBipartite();
             break;
@@ -390,7 +363,6 @@ function selectViz(option) {
 }
 
 function vizMatrix() {
-    force.stop();
     var svg = d3.select("#viz .svgMain");
     svg.selectAll("circle, rect").each(function(d) { d.fixed = true; });
     var inc = Math.min(metadata.graphHeight/(sets.length+1), 
@@ -437,23 +409,7 @@ function vizMatrix() {
     svg.classed("graph",false);
 }   
 
-function vizForce() {
-    var svg = d3.select("#viz .svgMain");
-    svg.selectAll("circle, rect").each(function(d) { d.fixed = false; });
-    svg.selectAll("line")
-      .attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; });
-    svg.selectAll("circle")
-      .attr("r", metadata.circleSize);
-    svg.selectAll("rect")
-      .attr("width", metadata.circleSize*2)
-      .attr("height", metadata.circleSize*2)
-    force.start();
-    svg.classed("matrix",false);
-    svg.classed("graph",true);
-}
-
 function vizBipartite() {
-    force.stop();
     var svg = d3.select("#viz .svgMain");
     svg.selectAll("line")
       .attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; })
