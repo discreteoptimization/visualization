@@ -27,18 +27,14 @@ SOFTWARE.
 var LINK_COLOR = "#888888";
 var SET_COLOR = "#aaaaaa";
 var COVERED_ITEM_COLOR = "#00aa00";
-var HIGHLIGHTED_LINK_COLOR = "#4488ff";
 var metadata = {
     "isOptimal": 0, "objectiveVal": 0, "itemCount": 0, "setCount": 0,
-    "graphHeight": 0, "graphWidth": 0, "circleSize": 0
+    "graphHeight": 0, "graphWidth": 0
 }
 var sets = [];
 var items = [];
 var colors = [];
 var links = [];
-var vizType;
-var nodes;
-var lines;
 
 function parseInputText(data) {
 
@@ -47,7 +43,6 @@ function parseInputText(data) {
     "isOptimal": 0, "objectiveVal": 0, "itemCount": 0, "setCount": 0, 
     };
 	
-
     data = data.trim();
         
     var lines = data.split(REGEX_NEWLINE);
@@ -83,9 +78,6 @@ function parseInputText(data) {
           links.push({source:theSet, target:items[theSet.items[j]]});
         }
     }
-    
-
-    
     return true;
 }
     
@@ -154,16 +146,12 @@ function setGraphSize(minWidth, minHeight) {
 
 function vizBenchmark() {
     
-    var itemX = 10;
-    var itemDeltaY = 2;
-    
     cleanViz();
-    var nodeCt = metadata.itemCount + metadata.setCount;
     
     //data
     var metadataStr = "";
     d3.selectAll("#problemTable tbody *").remove();
-	  d3.selectAll("#solutionTable tbody *").remove();
+	d3.selectAll("#solutionTable tbody *").remove();
 
     metadataStr += "<tr><td colspan='2' class='metaSectionTitle'>Problem</td></tr>";
     metadataStr += "<tr><td class='metaElement'><img src='images/square.png'> Sets</td><td class='metaValue'>" + metadata.setCount + "</td></tr>";
@@ -178,8 +166,8 @@ function vizBenchmark() {
         .attr("class", "tooltip")
         .style("opacity", 0);
 	
-	  //unique colors for each set
-	  colors = makeColorGradient(metadata.setCount);
+    //unique colors for each set
+    colors = makeColorGradient(metadata.setCount);
 	  	  
     var svg = d3.select("#viz")
         .append("svg")
@@ -198,11 +186,11 @@ function vizBenchmark() {
         .attr("id", function (d) { return "setPnt" + d.i; })
 		    .attr("fill", SET_COLOR)        
 		    .attr("class", function(d) {
-            var classes = "set"+d.i
-            for (var i = 0; i < d.items.length; i++) {
-              classes = classes + " item"+d.items[i];
-            }
-            return classes; 
+                var classes = "set"+d.i
+                for (var i = 0; i < d.items.length; i++) {
+                  classes = classes + " item"+d.items[i];
+                }
+                return classes; 
             })
 		    .style("opacity", 1)
 
@@ -336,7 +324,7 @@ function vizBenchmark() {
         });
 
     //links
-    lines = svg.select("#links").selectAll("line")
+    svg.select("#links").selectAll("line")
         .data(links)
         .enter()
         .append("line")
@@ -467,10 +455,7 @@ function vizSolution() {
    
     //assign colors to customers to match assigned facility
 	svg.select("#items").selectAll("circle")
-		.classed("covered", function(d) { return d.covered } );
-
-	// draw connecting lines
-    // svg.select("#links").selectAll("line").data([]).exit().remove();
+	    .classed("covered", function(d) { return d.covered } );
 	
     var lines = svg.select("#links").selectAll("line")
         .attr("stroke", function(d) {
