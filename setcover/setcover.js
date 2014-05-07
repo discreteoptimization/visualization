@@ -68,8 +68,8 @@ function parseInputText(data) {
       items[i] = { i: i, sets: [], covered: false }
     }
     
-	  sets = [];
-	  links = [];
+	sets = [];
+	links = [];
     var parts, theSet;
     for (var i = 1; i < metadata.setCount + 1; i++) {
 
@@ -125,39 +125,40 @@ function parseSolutionText(data, size) {
 function cleanViz(){
     var svg = d3.select("#viz svg").data([]).exit().remove();
 }
+
+function setGraphSize(minWidth, minHeight) {
+    // set graph size to largest of:
+    //      default size
+    //      available space in window
+    //      minimum size for current visualization (passed as arguments)
     
+    var availableWidth = 0, 
+        availableHeight = 0;
+    try {
+        availableWidth = d3.select("#viz")[0][0].clientWidth;
+        availableHeight = window.innerHeight - 
+                          d3.select("#data")[0][0].offsetTop - X_AXIS_PAD;
+    } catch (ex) {
+        reportError(ex);
+    }
+
+    metadata.graphWidth = Math.max(availableWidth, DEFAULT_GRAPH_WIDTH, minWidth);
+    metadata.graphHeight = Math.max(availableHeight, DEFAULT_GRAPH_HEIGHT, minHeight);
+    
+    d3.select("#viz svg")
+        .attr("width", metadata.graphWidth)
+        .style("width", metadata.graphWidth)
+        .attr("height", metadata.graphHeight)
+        .style("height", metadata.graphHeight);
+}   
+
 function vizBenchmark() {
     
     var itemX = 10;
     var itemDeltaY = 2;
     
     cleanViz();
-
-    //chart width based on available space
-    metadata.graphWidth = DEFAULT_GRAPH_WIDTH;
-
-    //chart width
-    try {
-        metadata.graphWidth = d3.select("#viz")[0][0].clientWidth;
-    } catch (ex) {
-        reportError(ex);
-    }
-
-    //chart height based on available space
-    metadata.graphHeight = DEFAULT_GRAPH_HEIGHT;
-
-    try {
-        metadata.graphHeight = window.innerHeight - d3.select("#data")[0][0].offsetTop - X_AXIS_PAD;
-
-        if (metadata.graphHeight < 1) {
-            metadata.graphHeight = DEFAULT_GRAPH_HEIGHT;
-        }
-
-    } catch (ex) {
-        reportError(ex);
-    }
     var nodeCt = metadata.itemCount + metadata.setCount;
-    metadata.circleSize = Math.min(Math.max(1, metadata.graphWidth / (nodeCt/4)),10);
     
     //data
     var metadataStr = "";
@@ -182,9 +183,7 @@ function vizBenchmark() {
 	  	  
     var svg = d3.select("#viz")
         .append("svg")
-        .attr("class", "svgMain")
-        .attr("width", metadata.graphWidth)
-        .attr("height", metadata.graphHeight);
+        .attr("class", "svgMain");
 		
     //parent groups for sets, items, and links
     svg.append("g").attr("id", "links");
@@ -280,9 +279,7 @@ function vizBenchmark() {
 		    .attr("fill", NODE_COLOR)
 		    .style("opacity", 1)
 
-        .on("dblclick", function(d) { d.fixed = false; })
-        .on("mouseover", function (d) {
-    
+        .on("mouseover", function (d) {    
           //prevent tool tip from falling off page
           var left = d3.event.pageX;
           if ((left + div[0][0].clientWidth) > window.innerWidth) {
@@ -364,18 +361,15 @@ function selectViz(option) {
 
 function vizMatrix() {
     var svg = d3.select("#viz .svgMain");
-    svg.selectAll("circle, rect").each(function(d) { d.fixed = true; });
+    setGraphSize(0,0); // set size based on visible size or default
     var inc = Math.min(metadata.graphHeight/(sets.length+1), 
                        metadata.graphWidth/(items.length+1));
-    if (inc < 5) inc = 5;
+    if (inc < 5) {
+        inc = 5;
+        setGraphSize(inc * (items.length + 1), inc * (sets.length + 1));
+    }
     
-    // make sure svg is large enough
-    var minHeight = inc * (sets.length + 1);
-    var minWidth = inc * (items.length + 1);
-    if (minHeight > svg[0][0].clientHeight) svg.attr("height", minHeight);
-    if (minWidth > svg[0][0].clientWidth) svg.attr("width", minWidth);
-    
-    var circleSize = Math.min(inc*.45, metadata.circleSize);
+    var circleSize = inc*.45;
     for (var i = 0; i < sets.length; i++) {
         sets[i].x = sets[i].px = .5*inc;
         sets[i].y = sets[i].py = (i+1.5)*inc;
@@ -384,6 +378,7 @@ function vizMatrix() {
         items[i].x = items[i].px = (i+1.5)*inc;
         items[i].y = items[i].py = .5*inc;
     }
+
     svg.selectAll("circle")
       .transition()
       .duration(500)
@@ -411,35 +406,39 @@ function vizMatrix() {
 
 function vizBipartite() {
     var svg = d3.select("#viz .svgMain");
+
     svg.selectAll("line")
       .attr("stroke-width", function(d) { return d.source.chosen ? 2 : 1; })
-    svg.selectAll("circle, rect").each(function(d) { d.fixed = true; });
     
-    var inc = (metadata.graphHeight-2*metadata.circleSize)/sets.length;
-    var cols = Math.ceil(3*metadata.circleSize/inc);
+    setGraphSize(0,0); // set size based on visible size or default
+    var setInc = Math.max(metadata.graphHeight/(sets.length + 1),5);
+    var itemInc = Math.max(metadata.graphHeight/(items.length + 1),5);
+    var circleSize = Math.min(.45 * setInc, .45 * itemInc, 10);
+    
+    var cols = Math.ceil(setInc * (sets.length+1) / metadata.graphHeight);
     for (var i = 0; i < sets.length; i++) {
-        sets[i].x = sets[i].px = metadata.graphWidth/6 + 3 * metadata.circleSize * (i % cols);
-        sets[i].y = sets[i].py = metadata.circleSize + i*inc;
+        sets[i].x = sets[i].px = metadata.graphWidth/6 + 3 * circleSize * (i % cols);
+        sets[i].y = sets[i].py = circleSize + i*setInc/cols;
     }
-    inc = (metadata.graphHeight-2*metadata.circleSize)/items.length;
-    cols = Math.ceil(3*metadata.circleSize/inc);
+    
+    var cols = Math.ceil(itemInc * (items.length+1) / metadata.graphHeight);
     for (var i = 0; i < items.length; i++) {
-        items[i].x = items[i].px = metadata.graphWidth*5/6 - 3 * metadata.circleSize * (i % cols);
-        items[i].y = items[i].py = metadata.circleSize + i*inc;
+        items[i].x = items[i].px = metadata.graphWidth*5/6 - 3 * circleSize * (i % cols);
+        items[i].y = items[i].py = circleSize + i*itemInc/cols;
     }
     svg.selectAll("circle")
       .transition()
       .duration(500)
-      .attr("r", metadata.circleSize)
+      .attr("r", circleSize)
       .attr("cx", function(d) { return d.x })
       .attr("cy", function(d) { return d.y });
     svg.selectAll("rect")
       .transition()
       .duration(500)
-      .attr("width", metadata.circleSize*2)
-      .attr("height", metadata.circleSize*2)
-      .attr("x", function(d) { return d.x  - metadata.circleSize})
-      .attr("y", function(d) { return d.y  - metadata.circleSize});
+      .attr("width", circleSize*2)
+      .attr("height", circleSize*2)
+      .attr("x", function(d) { return d.x  - circleSize})
+      .attr("y", function(d) { return d.y  - circleSize});
     svg.selectAll("line")
       .transition()
       .duration(500)
@@ -454,8 +453,8 @@ function vizBipartite() {
     
 function vizSolution() {
 
-    //solution details
-	  d3.selectAll("#solutionTable tbody *").remove();
+    // solution details
+	d3.selectAll("#solutionTable tbody *").remove();
 	
     var metadataStr = "";
     metadataStr += "<tr><td colspan='2' class='metaSectionTitle'>Your Solution</td></tr>";
@@ -470,8 +469,8 @@ function vizSolution() {
 	svg.select("#items").selectAll("circle")
 		.classed("covered", function(d) { return d.covered } );
 
-	//draw connecting lines
-// 	svg.select("#links").selectAll("line").data([]).exit().remove();
+	// draw connecting lines
+    // svg.select("#links").selectAll("line").data([]).exit().remove();
 	
     var lines = svg.select("#links").selectAll("line")
         .attr("stroke", function(d) {
@@ -504,44 +503,5 @@ function loadSolution(text){
     if (valid) {
         vizSolution();
     }
-}
-
-function checkValidity() {
-	var errors = [];
-	var cost = 0;
-	var unassigned = []
-	customers.forEach(function(cust) {
-	    if (cust.facility === null) {
-	        unassigned.push(cust.index)
-	    } else {
-    	    cost += dist(cust, cust.facility);
-    	}
-	});
-	if (unassigned.length > 0) {
-	     errors.push(errorMessage(unassigned, "not assigned to a valid facility",
-	                              "Customer"));
-	}
-	
-	var overCapacity = [];
-	facilities.forEach(function(fac) {
-	    if (fac.capacityUsed > fac.capacity) {
-	        overCapacity.push(fac.index) ;  
-	    }
-	    if (fac.capacityUsed > 0) {
-	        cost += fac.cost;
-	    }
-	});
-	if (overCapacity.length > 0) {
-	    errors.push(errorMessage(overCapacity, "over capacity", 
-	                             "Facility", "Facilities"));
-	}
-	if (Math.abs(cost - metadata.objectiveVal) > .01) {
-	    errors.push("Solution reports cost as " + roundNumber(metadata.objectiveVal,4) 
-	                + ", but actual cost is " + roundNumber(cost,4) 
-	                + ".");
-	}
-    
-    reportError(errors.join(" "));
-    return true;
 }
     
