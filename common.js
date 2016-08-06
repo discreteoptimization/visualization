@@ -77,3 +77,20 @@ function errorMessage(itemList, error, itemName, pluralItemName) {
                     + " and others " + error + ".";
     }
 }
+
+function constraintProportions(o, width, height) {
+    var spanX = o['x_max'] - o['x_min']
+    var spanY = o['y_max'] - o['y_min']
+    if (height != 0 && spanY != 0) {
+        var ratio = width / height
+        if (spanX / spanY > ratio) {
+            var yMiddle = (o['y_min'] + o['y_max']) / 2
+            o['y_min'] = yMiddle - spanX / ratio / 2
+            o['y_max'] = yMiddle + spanX / ratio / 2
+        } else {
+            var xMiddle = (o['x_min'] + o['x_max']) / 2
+            o['x_min'] = xMiddle - spanY * ratio / 2
+            o['x_max'] = xMiddle + spanY * ratio / 2
+        }
+    }
+}
