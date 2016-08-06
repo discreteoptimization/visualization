@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF8">
+    <title>Setcover Problem</title>
+    
+    <link rel="stylesheet" type="text/css" href="../viz.css" media="screen" />
+    <link href="setcover.css" rel="stylesheet" />
+
+    <script type="text/javascript" src="http://d3js.org/d3.v3.js"></script>
+    <script type="text/javascript" src="../constants.js"></script>
+    <script type="text/javascript" src="../common.js"></script>
+    <script type="text/javascript" src="setcover.js"></script>
+
+</head>
+<body>
+
+    <div id="controls">
+	    <div id="benchmark_zone" class="drop_zone">Step 1 - Drop benchmark file here</div>
+	    <div id="solution_zone" class="drop_zone">Step 2 - Drop solution file here</div>
+		  <div style="clear:both;"><p id="feedback"></p></div>
+	  </div>
+    <div id="data">
+        <table id="problemTable" class="metadataTable">
+            <tbody>
+            </tbody>
+        </table>	
+        <table id="solutionTable" class="metadataTable">
+            <tbody>
+            </tbody>
+        </table>
+        <div id="viewSelector">
+            View:
+            <select name="vizType" id="vizType" onchange="selectViz(this.value)">
+              <option value="matrix">Matrix</option>
+              <option value="bipartiteGraph">Graph</option>
+            </select>
+        </div>
+    </div>
+    <div id="viz"><svg id="svgMain"></svg></div>
+    <pre id="debug"></pre>
+
+    <script type="text/javascript" src="../viz.js"></script>
+
+</body>
+</html>
