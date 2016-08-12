@@ -158,6 +158,8 @@ function vizBenchmark(benchmark){
 			reportError(ex);
 		}
 
+		constraintProportions(benchmark, metadata.graphWidth, metadata.graphHeight)
+
 		var circleSize = Math.min(Math.max(1, metadata.graphWidth / benchmark['size']),5);
 		benchmark['circle_size'] = circleSize
 		

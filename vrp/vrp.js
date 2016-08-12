@@ -220,6 +220,8 @@ function vizBenchmark() {
         reportError(ex);
     }
 
+    constraintProportions(metadata, metadata.graphWidth, metadata.graphHeight)
+
     //var height = Math.round(width * (metadata['y_span'] / metadata['x_span']));
     metadata.circle_size = Math.min(Math.max(1, metadata.graphWidth / metadata['customerCount']), 5);;
         
