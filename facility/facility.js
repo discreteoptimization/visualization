@@ -405,7 +405,11 @@ function vizSolution() {
 	}
 
 }
-    
+
+function isBenchmark(text){
+    return text.replace(/^\s+|\s+$/g, '').split(REGEX_NEWLINE).length > 2
+}
+
 function loadBenchmark(text){
     if (parseInputText(text));
     vizBenchmark();

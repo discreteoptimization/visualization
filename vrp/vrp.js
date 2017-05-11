@@ -466,7 +466,12 @@ function vizSolution() {
 			    .attr("stroke-width", line_width);
         });
 }
-    
+
+function isBenchmark(text){
+    var lines = text.replace(/^\s+|\s+$/g, '').split(REGEX_NEWLINE)
+    return lines.length == parseInt(lines[0]) + 1
+}
+
 function loadBenchmark(text){
     parseInputText(text);
     vizBenchmark();

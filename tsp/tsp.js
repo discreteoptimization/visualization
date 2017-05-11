@@ -302,6 +302,10 @@ function vizSolution(solution){
 		
 }
 
+function isBenchmark(text){
+    return text.replace(/^\s+|\s+$/g, '').split(REGEX_NEWLINE).length > 2
+}
+
 function loadBenchmark(text){
 	console.log("loading data");
 	console.log(text);
